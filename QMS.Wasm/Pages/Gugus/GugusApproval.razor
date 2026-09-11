@@ -1,0 +1,160 @@
+﻿@page "/gugus/acc"
+@inject HttpClient Http
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="portlet">
+            <div class="portlet-header">
+                <h3><i class="fa fa-check-square-o"></i> Acc Gugus</h3>
+            </div>
+            <div class="portlet-content" id="content-center">
+
+                <div class="alert alert-info">
+                    Klik nama gugus untuk melihat daftar anggota gugus!
+                </div>
+
+                <!-- TABEL GUGUS PENDING (acc = 'N') -->
+                <div class="table-responsive mb-4">
+                    <table class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Pembuat Gugus</th>
+                                <th>Nama Gugus</th>
+                                <th>Kategori</th>
+                                <th>Judul</th>
+                                <th>Telp</th>
+                                <th>Option</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (pendingGugus.Count == 0)
+                            {
+                                <tr><td colspan="7" class="text-center">Tidak ada gugus yang menunggu persetujuan.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var (item, index) in pendingGugus.Select((g, i) => (g, i + 1)))
+                                {
+                                    <tr>
+                                        <td>@index</td>
+                                        <td>@item.Creator</td>
+                                        <td><a href="gugus/detail/@item.IdGugus">@item.NamaGugus</a></td>
+                                        <td>@item.CategoryGugus</td>
+                                        <td>@item.Title</td>
+                                        <td>@item.Telp</td>
+                                        <td class="text-center">
+                                            <button class="btn btn-xs btn-secondary" @onclick="() => ApproveGugus(item.IdGugus)" title="Acc Gugus">
+                                                <i class="fa fa-check"></i>
+                                            </button>
+                                            <button class="btn btn-xs btn-primary" @onclick="() => DeleteGugus(item.IdGugus)" title="Delete">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="hr"><hr /></div>
+
+                <div class="alert alert-info">
+                    Nama Gugus yang telah disetujui!
+                </div>
+
+                <!-- TABEL GUGUS APPROVED (acc = 'Y') -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>Pembuat Gugus</th>
+                                <th>Nama Gugus</th>
+                                <th>Kategori</th>
+                                <th>Judul</th>
+                                <th>Telp</th>
+                                <th>Option</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (approvedGugus.Count == 0)
+                            {
+                                <tr><td colspan="7" class="text-center">Belum ada gugus yang disetujui.</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var (item, index) in approvedGugus.Select((g, i) => (g, i + 1)))
+                                {
+                                    <tr>
+                                        <td>@index</td>
+                                        <td>@item.Creator</td>
+                                        <td><a href="gugus/detail/@item.IdGugus">@item.NamaGugus</a></td>
+                                        <td>@item.CategoryGugus</td>
+                                        <td>@item.Title</td>
+                                        <td>@item.Telp</td>
+                                        <td class="text-center">
+                                            <button class="btn btn-xs btn-primary" @onclick="() => DeleteGugus(item.IdGugus)" title="Delete">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<GugusModel> pendingGugus = new();
+    private List<GugusModel> approvedGugus = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulasi fetch dari API (select * from tb_gugus)
+        pendingGugus = new List<GugusModel>
+        {
+            new GugusModel { IdGugus = 1, Creator = "748123", NamaGugus = "CIP RU Dumai", CategoryGugus = "GDM", Title = "Efisiensi Kilang", Telp = "0812345678" }
+        };
+
+        approvedGugus = new List<GugusModel>
+        {
+            new GugusModel { IdGugus = 2, Creator = "750111", NamaGugus = "PC-Prove QA", CategoryGugus = "PKM", Title = "Sistem Otomasi QMS", Telp = "0812987654" }
+        };
+        await Task.CompletedTask;
+    }
+
+    private async Task ApproveGugus(int id)
+    {
+        var item = pendingGugus.FirstOrDefault(g => g.IdGugus == id);
+        if (item != null)
+        {
+            pendingGugus.Remove(item);
+            approvedGugus.Add(item);
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task DeleteGugus(int id)
+    {
+        pendingGugus.RemoveAll(g => g.IdGugus == id);
+        approvedGugus.RemoveAll(g => g.IdGugus == id);
+        await Task.CompletedTask;
+    }
+
+    public class GugusModel
+    {
+        public int IdGugus { get; set; }
+        public string Creator { get; set; } = string.Empty;
+        public string NamaGugus { get; set; } = string.Empty;
+        public string CategoryGugus { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Telp { get; set; } = string.Empty;
+    }
+}

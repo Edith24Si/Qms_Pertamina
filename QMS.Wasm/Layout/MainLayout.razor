@@ -1,3 +1,73 @@
 ﻿@inherits LayoutComponentBase
 
-@Body
+<div class="main-wrapper">
+    <!-- 1. Header Atas (Logo & Profile) -->
+    <TopHeader />
+
+    <!-- 2. Navbar Main Menu (navbar.php) -->
+    <NavMenu />
+
+    <!-- 3. Konten Utama & Sidebar (side.php) -->
+    <div class="container">
+        <div class="content">
+            <div class="content-container">
+                <div class="row">
+                    <!-- Area Halaman Utama -->
+                    <div class="col-md-8">
+                        @Body
+                    </div>
+
+                    <!-- Sidebar Right -->
+                    <Sidebar />
+                </div>
+            </div> <!-- /.content-container -->
+        </div> <!-- /.content -->
+    </div> <!-- /.container -->
+    <!-- 4. Footer & Modal (footer.php) -->
+    <footer class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-sm-12">
+                    <div class="footstr1">
+                        <p class="p-footstr1">
+                            <span class="fa fa-map-marker"></span>&nbsp;&nbsp;&nbsp;
+                            Head Office : Jalan Puteri Tujuh Dumai - Riau, 28813 <br>
+                            <span class="fa fa-phone"></span>&nbsp;
+                            Telp. (0765)31244 Fax. (0765)31532
+                        </p>
+                    </div>
+                    <div class="footstr2">
+                        <p class="p-footstr2">
+                            Copyright &copy; 2014 - PT. Pertamina Patra Niaga RU Dumai
+                        </p>
+                    </div>
+                    <div class="footimg">
+                        <NavLink href="">
+                            <img src="assets/img/pertamina.png" alt="Site Logo">
+                        </NavLink>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="str2"></div>
+    </footer>
+
+    <!-- Modal About -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title" id="myModalLabel">About</h4>
+                </div>
+                <div class="modal-body">
+                    <p>Selamat datang di website Quality Management System V.2.0</p>
+                    <p>Semoga website ini dapat sedikit meringankan kerja anda. Mohon kritik dan saran demi kemajuan website ini. Terimakasih!</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

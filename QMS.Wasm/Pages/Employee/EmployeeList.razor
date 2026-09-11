@@ -1,0 +1,91 @@
+﻿@page "/employees"
+@inject HttpClient Http
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="portlet">
+            <div class="portlet-header">
+                <h3><i class="fa fa-users"></i> Data Employee</h3>
+            </div>
+            <div class="portlet-content">
+                <div class="mb-3 text-end">
+                    <button class="btn btn-primary btn-sm" @onclick="ShowAddModal">
+                        <i class="fa fa-plus"></i> Tambah Pegawai
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered">
+                        <thead>
+                            <tr>
+                                <th>No</th>
+                                <th>NIP</th>
+                                <th>Nama Pegawai</th>
+                                <th>Jabatan</th>
+                                <th>Bagian / Fungsi</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (employees.Count == 0)
+                            {
+                                <tr>
+                                    <td colspan="6" class="text-center">Belum ada data pegawai.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var (emp, index) in employees.Select((e, i) => (e, i + 1)))
+                                {
+                                    <tr>
+                                        <td>@index</td>
+                                        <td>@emp.Nip</td>
+                                        <td>@emp.Nama</td>
+                                        <td>@emp.Jabatan</td>
+                                        <td>@emp.Fungsi</td>
+                                        <td>
+                                            <button class="btn btn-xs btn-warning" @onclick="() => EditEmployee(emp.Id)">
+                                                <i class="fa fa-edit"></i> Edit
+                                            </button>
+                                            <button class="btn btn-xs btn-danger" @onclick="() => DeleteEmployee(emp.Id)">
+                                                <i class="fa fa-trash"></i> Hapus
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<EmployeeDto> employees = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Placeholder data, nanti di-fetch dari api/employees
+        employees = new List<EmployeeDto>
+        {
+            new EmployeeDto { Id = 1, Nip = "748920", Nama = "Budi Santoso", Jabatan = "Sr. Officer QMS", Fungsi = "Quality Management" },
+            new EmployeeDto { Id = 2, Nip = "751204", Nama = "Siti Rahma", Jabatan = "Engineer Compliance", Fungsi = "HSE & Quality" }
+        };
+        await Task.CompletedTask;
+    }
+
+    private void ShowAddModal() { /* Trigger Modal Tambah */ }
+    private void EditEmployee(int id) { /* Trigger Modal Edit */ }
+    private void DeleteEmployee(int id) { /* Call API Hapus */ }
+
+    public class EmployeeDto
+    {
+        public int Id { get; set; }
+        public string Nip { get; set; } = string.Empty;
+        public string Nama { get; set; } = string.Empty;
+        public string Jabatan { get; set; } = string.Empty;
+        public string Fungsi { get; set; } = string.Empty;
+    }
+}

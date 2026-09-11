@@ -1,0 +1,184 @@
+﻿@page "/documents/upload"
+@inject HttpClient Http
+@inject NavigationManager NavManager
+
+<div class="row">
+    <div class="col-md-10 offset-md-1">
+        <div class="portlet">
+            <div class="portlet-header d-flex justify-content-between align-items-center">
+                <h3><i class="fa fa-upload"></i> Upload Dokumen Baru</h3>
+                <a href="documents" class="btn btn-sm btn-secondary">
+                    <i class="fa fa-arrow-left"></i> Kembali ke Daftar
+                </a>
+            </div>
+
+            <div class="portlet-content" id="content-center">
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>Error!</strong> @errorMessage
+                        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>Berhasil!</strong> @successMessage
+                        <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
+                    </div>
+                }
+
+                <EditForm Model="@uploadModel" OnValidSubmit="HandleFileUpload" class="form-horizontal">
+                    <DataAnnotationsValidator />
+
+                    <div class="form-group row mb-3">
+                        <label class="col-md-3 col-form-label fw-bold">Kategori / Folder</label>
+                        <div class="col-md-8">
+                            <InputSelect @bind-Value="uploadModel.MenuId" class="form-control" required>
+                                <option value="0">-- Pilih Kategori --</option>
+                                @foreach (var item in categoryList)
+                                {
+                                    <option value="@item.MenuId">@item.MenuName @(!string.IsNullOrEmpty(item.SubMenu) ? $" - {item.SubMenu}" : "")</option>
+                                }
+                            </InputSelect>
+                        </div>
+                    </div>
+
+                    <div class="form-group row mb-3">
+                        <label class="col-md-3 col-form-label fw-bold">Judul / Nama Dokumen</label>
+                        <div class="col-md-8">
+                            <InputText @bind-Value="uploadModel.DocumentTitle" class="form-control" placeholder="Masukkan judul dokumen..." required />
+                        </div>
+                    </div>
+
+                    <div class="form-group row mb-4">
+                        <label class="col-md-3 col-form-label fw-bold">Pilih File (PDF/DOCX)</label>
+                        <div class="col-md-8">
+                            <InputFile OnChange="OnInputFileChange" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx" required />
+                            <small class="form-text text-muted mt-1 d-block">
+                                Ukuran maksimal berkas: 10 MB. Format yang diperbolehkan: .pdf, .docx, .xlsx
+                            </small>
+                        </div>
+                    </div>
+
+                    <div id="hr"><hr /></div>
+
+                    <div class="form-group row mt-3">
+                        <div class="col-md-8 offset-md-3">
+                            <button type="submit" class="btn btn-primary px-4" disabled="@isUploading">
+                                @if (isUploading)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    <span>Mengunggah...</span>
+                                }
+                                else
+                                {
+                                    <span><i class="fa fa-cloud-upload me-1"></i> Upload Dokumen</span>
+                                }
+                            </button>
+                            <a href="documents" class="btn btn-outline-secondary ms-2">Batal</a>
+                        </div>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private UploadFormModel uploadModel = new();
+    private List<CategoryItem> categoryList = new();
+    private IBrowserFile? selectedFile;
+    private bool isUploading = false;
+    private string? errorMessage;
+    private string? successMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Mock data kategori
+        categoryList = new List<CategoryItem>
+        {
+            new CategoryItem { MenuId = 1, MenuName = "Pedoman Mutu", SubMenu = "Level 1" },
+            new CategoryItem { MenuId = 2, MenuName = "Prosedur Kerja", SubMenu = "Level 2" },
+            new CategoryItem { MenuId = 3, MenuName = "Instruksi Kerja", SubMenu = "Level 3" },
+            new CategoryItem { MenuId = 4, MenuName = "Formulir Mutu", SubMenu = "Level 4" }
+        };
+        await Task.CompletedTask;
+    }
+
+    private void OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        selectedFile = e.File;
+        errorMessage = null;
+
+        // Validasi ukuran berkas (misal max 10MB)
+        if (selectedFile.Size > 10 * 1024 * 1024)
+        {
+            errorMessage = "Ukuran file terlalu besar! Maksimal 10 MB.";
+            selectedFile = null;
+        }
+    }
+
+    private async Task HandleFileUpload()
+    {
+        if (uploadModel.MenuId == 0)
+        {
+            errorMessage = "Silakan pilih Kategori / Folder terlebih dahulu.";
+            return;
+        }
+
+        if (selectedFile == null)
+        {
+            errorMessage = "Silakan pilih berkas dokumen yang akan diunggah.";
+            return;
+        }
+
+        try
+        {
+            isUploading = true;
+            errorMessage = null;
+
+            // Simulasi HTTP multipart form upload ke API Backend
+            using var content = new MultipartFormDataContent();
+            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            var streamContent = new StreamContent(stream);
+
+            content.Add(streamContent, "file", selectedFile.Name);
+            content.Add(new StringContent(uploadModel.MenuId.ToString()), "menu_id");
+            content.Add(new StringContent(uploadModel.DocumentTitle), "title");
+
+            // var response = await Http.PostAsync("api/documents/upload", content);
+            await Task.Delay(1000); // Simulasi delay proses upload
+
+            successMessage = "Dokumen berhasil diunggah!";
+            uploadModel = new();
+            selectedFile = null;
+
+            // Redirect kembali ke daftar setelah 1.5 detik
+            await Task.Delay(1500);
+            NavManager.NavigateTo("documents");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Gagal mengunggah berkas: {ex.Message}";
+        }
+        finally
+        {
+            isUploading = false;
+        }
+    }
+
+    public class UploadFormModel
+    {
+        public int MenuId { get; set; }
+        public string DocumentTitle { get; set; } = string.Empty;
+    }
+
+    public class CategoryItem
+    {
+        public int MenuId { get; set; }
+        public string MenuName { get; set; } = string.Empty;
+        public string? SubMenu { get; set; }
+    }
+}

@@ -1,0 +1,43 @@
+﻿@inject NavigationManager Navigation
+
+<div class="col-md-4">
+    <!-- Form Search disesuaikan untuk Blazor -->
+    <form @onsubmit="HandleSearch" class="form">
+        <div class="input-group">
+            <input type="text"
+                   @bind="searchWord"
+                   class="form-control"
+                   placeholder="Search..." />
+            <span class="input-group-btn">
+                <button class="btn btn-primary" type="submit">
+                    <i class="fa fa-search"></i>
+                    <img src="assets/img/search.png" alt="Search">
+                </button>
+            </span>
+        </div><!-- /input-group -->
+    </form>
+    <br>
+
+    <!-- Widget Mutu Kerja -->
+    <div class="portlet">
+        <div class="portlet-header">
+            <h3><i class="fa fa-bar-chart-o"></i> Mutu Kerja </h3>
+        </div> <!-- /.portlet-header -->
+
+        <div class="portlet-content">
+            <div id="mutukerja"></div>
+        </div> <!-- /.portlet-content -->
+    </div> <!-- /.portlet -->
+</div> <!-- /.col -->
+@code {
+    private string searchWord = string.Empty;
+
+    private void HandleSearch()
+    {
+        if (!string.IsNullOrWhiteSpace(searchWord))
+        {
+            // Pindah halaman ke /search dengan query parameter kata kunci
+            Navigation.NavigateTo($"/search?word={Uri.EscapeDataString(searchWord)}");
+        }
+    }
+}

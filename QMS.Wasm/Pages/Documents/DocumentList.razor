@@ -1,0 +1,204 @@
+﻿@page "/documents"
+@page "/document"
+@page "/document/documentlist"
+@inject HttpClient Http
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="portlet">
+            <div class="portlet-header d-flex justify-content-between align-items-center">
+                <h3><i class="fa fa-archive"></i> Data List</h3>
+                <a href="documents/upload" class="btn btn-sm btn-primary">
+                    <i class="fa fa-upload"></i> Upload Dokumen Baru
+                </a>
+            </div> <!-- /.portlet-header -->
+
+            <div class="portlet-content" id="content-center">
+                @if (!string.IsNullOrEmpty(alertMessage))
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>Well done!</strong> @alertMessage
+                        <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
+                    </div>
+                }
+
+                <div class="form-horizontal">
+                    <div class="form-group row mb-4">
+                        <label class="col-md-3 col-form-label">Nama Folder</label>
+                        <div class="col-md-9">
+                            <select class="form-control" @onchange="OnMenuChanged">
+                                <option value="0" selected>-- Pilih Kategori --</option>
+                                @foreach (var item in menuList)
+                                {
+                                    <option value="@item.MenuId">
+                                        @item.MenuName @(!string.IsNullOrEmpty(item.SubMenu) ? $" - {item.SubMenu}" : "")
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="hr"><hr /></div>
+
+                    <!-- Area Dynamic Content -->
+                    <div id="txtHint">
+                        @if (isLoading)
+                        {
+                            <div class="text-center my-4">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2">Memuat dokumen...</p>
+                            </div>
+                        }
+                        else if (selectedMenuId == 0)
+                        {
+                            <div class="alert alert-info">Data info will be listed here. Please select category!</div>
+                        }
+                        else if (documentList.Count == 0)
+                        {
+                            <div class="alert alert-warning">Tidak ada berkas/dokumen pada kategori ini.</div>
+                        }
+                        else
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-striped table-bordered table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th width="5%">No</th>
+                                            <th>Nama Berkas</th>
+                                            <th>Ukuran</th>
+                                            <th>Tanggal Upload</th>
+                                            <th width="15%" class="text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var (doc, index) in documentList.Select((d, i) => (d, i + 1)))
+                                        {
+                                            <tr>
+                                                <td>@index</td>
+                                                <td>
+                                                    <i class="fa fa-file-pdf-o text-danger me-2"></i>
+                                                    <strong>@doc.FileName</strong>
+                                                </td>
+                                                <td>@doc.FileSizeFormatted</td>
+                                                <td>@doc.UploadDate.ToString("dd/MM/yyyy HH:mm")</td>
+                                                <td class="text-center">
+                                                    <a href="api/documents/download/@doc.Id" class="btn btn-xs btn-success" target="_blank" title="Download">
+                                                        <i class="fa fa-download"></i>
+                                                    </a>
+                                                    <button class="btn btn-xs btn-danger" @onclick="() => DeleteDocument(doc.Id)" title="Hapus">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div> <!-- /.portlet-content -->
+        </div> <!-- /.portlet -->
+    </div> <!-- /.col -->
+</div>
+
+@code {
+    private List<MenuItemModel> menuList = new();
+    private List<DocumentModel> documentList = new();
+    private int selectedMenuId = 0;
+    private bool isLoading = false;
+    private string? alertMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 1. Fetch data folder/kategori dari database via Web API
+        try
+        {
+            // menuList = await Http.GetFromJsonAsync<List<MenuItemModel>>("api/menu");
+
+            // Mock Data Kategori (sesuai tb_menu)
+            menuList = new List<MenuItemModel>
+            {
+                new MenuItemModel { MenuId = 1, MenuName = "Pedoman Mutu", SubMenu = "Level 1" },
+                new MenuItemModel { MenuId = 2, MenuName = "Prosedur Kerja", SubMenu = "Level 2" },
+                new MenuItemModel { MenuId = 3, MenuName = "Instruksi Kerja", SubMenu = "Level 3" },
+                new MenuItemModel { MenuId = 4, MenuName = "Formulir Mutu", SubMenu = "Level 4" }
+            };
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading categories: {ex.Message}");
+        }
+    }
+
+    private async Task OnMenuChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int menuId) && menuId > 0)
+        {
+            selectedMenuId = menuId;
+            isLoading = true;
+
+            // 2. Fetch data file ter-upload berdasarkan kategori terpilih (sesuai query tb_upload)
+            try
+            {
+                // documentList = await Http.GetFromJsonAsync<List<DocumentModel>>($"api/documents/by-menu/{menuId}");
+
+                await Task.Delay(300); // Temporary delay simulation
+                documentList = GetMockDocuments(menuId);
+            }
+            finally
+            {
+                isLoading = false;
+            }
+        }
+        else
+        {
+            selectedMenuId = 0;
+            documentList.Clear();
+        }
+    }
+
+    private async Task DeleteDocument(int id)
+    {
+        // 3. Eksekusi hapus file dari database & storage server
+        // var res = await Http.DeleteAsync($"api/documents/{id}");
+
+        documentList.RemoveAll(d => d.Id == id);
+        alertMessage = "You successfully Delete File Data.";
+        await Task.CompletedTask;
+    }
+
+    private List<DocumentModel> GetMockDocuments(int menuId)
+    {
+        return menuId switch
+        {
+            1 => new List<DocumentModel>
+            {
+                new DocumentModel { Id = 101, FileName = "Pedoman_Mutu_RU_Dumai_2026.pdf", FileSizeBytes = 2450000, UploadDate = DateTime.Now.AddDays(-5) }
+            },
+            2 => new List<DocumentModel>
+            {
+                new DocumentModel { Id = 201, FileName = "SOP_Pengelolaan_Limbah_Kilang.pdf", FileSizeBytes = 1120000, UploadDate = DateTime.Now.AddDays(-2) },
+                new DocumentModel { Id = 202, FileName = "SOP_Inspeksi_Pipa_Kilang_RU_II.pdf", FileSizeBytes = 3800000, UploadDate = DateTime.Now.AddDays(-1) }
+            },
+            _ => new List<DocumentModel>()
+        };
+    }
+
+    public class MenuItemModel
+    {
+        public int MenuId { get; set; }
+        public string MenuName { get; set; } = string.Empty;
+        public string? SubMenu { get; set; }
+    }
+
+    public class DocumentModel
+    {
+        public int Id { get; set; }
+        public string FileName { get; set; } = string.Empty;
+        public long FileSizeBytes { get; set; }
+        public DateTime UploadDate { get; set; }
+
+        public string FileSizeFormatted => $"{Math.Round((double)FileSizeBytes / 1024 / 1024, 2)} MB";
+    }
+}
