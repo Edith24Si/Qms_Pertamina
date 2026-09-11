@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="QMS.Api/QMS.Api.csproj" Id="620815df-3eda-4459-bdb0-ab96a9181a9f" />
+  <Project Path="QMS.Wasm/QMS.Wasm.csproj" Id="7526648d-7a85-478b-803e-e1b951e81fc3" />
+  <Project Path="QMS/QMS.Core.csproj" Id="581a82ac-dcf2-4331-a4fe-42ac53dcc740" />
+</Solution>
