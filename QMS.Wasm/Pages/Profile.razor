@@ -1,0 +1,499 @@
+@page "/profile"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject QmsApiService ApiService
+@inject QMS.Services.UserState UserState
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+
+    <!-- Hero Header Banner Pertamina -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 position-relative">
+        <div class="bg-gradient-pertamina p-4 text-white position-relative" style="min-height: 160px; background: linear-gradient(135deg, #ed1c24 0%, #a80e14 50%, #0f172a 100%);">
+            <div class="d-flex justify-content-between align-items-start position-relative" style="z-index: 2;">
+                <div>
+                    <span class="badge bg-white text-danger font-monospace px-3 py-1 rounded-pill fw-bold shadow-sm mb-2">
+                        <i class="fa fa-shield-alt me-1"></i> VERIFIED WORKER
+                    </span>
+                    <h3 class="fw-extrabold mb-1 text-white">PORTAL PEKERJA QMS</h3>
+                    <p class="text-white-50 small mb-0">Refinery Unit II Dumai — Subholding Downstream Pertamina Patra Niaga</p>
+                </div>
+                <div class="text-end d-none d-md-block">
+                    <span class="d-block text-white-50 small">Sistem Keamanan Informasi</span>
+                    <span class="badge bg-success border border-light rounded-pill px-3 py-1 fw-normal">
+                        <i class="fa fa-lock me-1"></i> ISO 27001 &amp; SMAP Certified
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Float Profile Info Bar -->
+        <div class="card-body bg-white px-4 pb-4 pt-0">
+            <div class="row align-items-end g-3" style="margin-top: -55px;">
+                <div class="col-auto">
+                    <div class="position-relative profile-avatar-container">
+                        <div class="bg-white rounded-circle p-1 shadow-lg d-inline-block">
+                            @if (!string.IsNullOrEmpty(userPhoto))
+                            {
+                                <img src="@userPhoto" alt="Foto Profil" 
+                                     class="rounded-circle border border-3 border-white shadow-inner object-fit-cover" 
+                                     style="width: 110px; height: 110px;" />
+                            }
+                            else
+                            {
+                                <div class="bg-dark text-white rounded-circle d-flex align-items-center justify-content-center border border-3 border-white shadow-inner" 
+                                     style="width: 110px; height: 110px; background: linear-gradient(145deg, #1e293b, #0f172a);">
+                                    <i class="fa fa-user fs-1 text-danger"></i>
+                                </div>
+                            }
+                        </div>
+                        
+                        <!-- Tombol Ubah / Tambah Foto Profil -->
+                        <button class="btn btn-sm btn-danger rounded-circle position-absolute bottom-0 end-0 shadow border border-2 border-white d-flex align-items-center justify-content-center"
+                                style="width: 36px; height: 36px;"
+                                title="Tambah / Ganti Foto Profil"
+                                @onclick="OpenPhotoModal">
+                            <i class="fa fa-camera small"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                        <div>
+                            <h4 class="fw-bold text-dark mb-1">@namaPekerja</h4>
+                            <div class="d-flex flex-wrap align-items-center gap-2 text-muted small">
+                                <span><i class="fa fa-id-card text-danger me-1"></i>NIP: <strong>@nipPekerja</strong></span>
+                                <span class="text-black-50">•</span>
+                                <span><i class="fa fa-envelope text-danger me-1"></i>@emailPekerja</span>
+                                <span class="text-black-50">•</span>
+                                <span><i class="fa fa-briefcase text-danger me-1"></i>@fungsiPekerja</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <button class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-semibold shadow-sm" @onclick="OpenPhotoModal">
+                                <i class="fa fa-camera me-1"></i> Ubah Foto Profil
+                            </button>
+                            <span class="badge @(userRole == "Administrator" ? "bg-danger" : "bg-primary") px-3 py-2 rounded-pill fs-6 fw-semibold shadow-sm">
+                                Role: @userRole
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Tabs & Grid -->
+    <div class="row g-4">
+        <!-- Sidebar Kiri: Kartu Ringkasan Otorisasi -->
+        <div class="col-lg-4">
+            <!-- Badge Keamanan -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fa fa-shield-alt text-danger me-2"></i>Status Hak Akses
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="p-3 bg-light rounded-3 mb-3 border border-secondary-subtle">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small fw-bold text-secondary">Tingkat Hak Akses</span>
+                            <span class="badge @(userRole == "Administrator" ? "bg-danger" : "bg-primary")">
+                                @(userRole == "Administrator" ? "Level 4 (Admin Penuh)" : "Level 1 (User / Pekerja)")
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-0">
+                            @(userRole == "Administrator" 
+                                ? "Memiliki otorisasi penuh untuk menambah, mengedit, dan menghapus dokumen serta mengelola master data." 
+                                : "Memiliki otorisasi untuk melihat (View) dan mengunduh (Unduh) dokumen standar mutu.")
+                        </p>
+                    </div>
+
+                    <ul class="list-group list-group-flush small">
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span class="text-muted">Akses Tambah Data:</span>
+                            <span class="fw-bold @(userRole == "Administrator" ? "text-success" : "text-muted")">
+                                @(userRole == "Administrator" ? "Diizinkan" : "Tidak Diizinkan")
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span class="text-muted">Akses Edit &amp; Hapus:</span>
+                            <span class="fw-bold @(userRole == "Administrator" ? "text-success" : "text-muted")">
+                                @(userRole == "Administrator" ? "Diizinkan" : "Tidak Diizinkan")
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span class="text-muted">Akses View &amp; Unduh:</span>
+                            <span class="fw-bold text-success">Diizinkan Penuh</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Kolom Kanan: Detail Biodata & Aktivitas -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <ul class="nav nav-pills gap-2 border-bottom pb-3">
+                        <li class="nav-item">
+                            <button class="nav-link rounded-pill px-4 @(activeTab == "biodata" ? "active bg-danger" : "btn-light text-dark")" 
+                                    @onclick='() => SetTab("biodata")'>
+                                Biodata Lengkap
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link rounded-pill px-4 @(activeTab == "aktivitas" ? "active bg-danger" : "btn-light text-dark")" 
+                                    @onclick='() => SetTab("aktivitas")'>
+                                Log Aktivitas Mutu
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body p-4">
+                    @if (activeTab == "biodata")
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold d-block">Nomor Pekerja (NIP)</label>
+                                <span class="fw-semibold text-dark font-monospace">@nipPekerja</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold d-block">Nama Lengkap</label>
+                                <span class="fw-semibold text-dark">@namaPekerja</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold d-block">Akun Email Resmi</label>
+                                <span class="fw-semibold text-dark">@emailPekerja</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold d-block">Fungsi / Unit Organisasi</label>
+                                <span class="fw-semibold text-dark">@fungsiPekerja</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold d-block">Lokasi Kilang</label>
+                                <span class="fw-semibold text-dark">RU II Dumai, Riau</span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="small text-muted fw-bold d-block">Status Kepegawaian</label>
+                                <span class="badge bg-success-subtle text-success fw-bold px-2 py-1">Aktif &amp; Terverifikasi</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="d-flex flex-column gap-3">
+                            <div class="d-flex gap-3 align-items-center">
+                                <div class="bg-danger-subtle text-danger rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fa fa-file-pdf"></i>
+                                </div>
+                                <div>
+                                    <span class="fw-bold text-dark d-block">Membaca Dokumen Pedoman Mutu RU II</span>
+                                    <small class="text-muted">Pedoman Sistem Manajemen Mutu 2026 • 2 jam yang lalu</small>
+                                </div>
+                            </div>
+                            <div class="d-flex gap-3 align-items-center">
+                                <div class="bg-success-subtle text-success rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                    <i class="fa fa-sign-in-alt"></i>
+                                </div>
+                                <div>
+                                    <span class="fw-bold text-dark d-block">Login Berhasil ke Portal QMS</span>
+                                    <small class="text-muted">Otentikasi Akun Pegawai Selesai • Hari ini</small>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah / Ganti Foto Profil -->
+@if (showPhotoModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.6); backdrop-filter: blur(2px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                        <i class="fa fa-camera text-danger"></i>
+                        <span>Ubah / Tambah Foto Profil</span>
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="ClosePhotoModal"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+
+                    <!-- Preview Foto yang Sedang Dipilih -->
+                    <div class="mb-4">
+                        <div class="preview-avatar-circle mx-auto shadow-sm">
+                            @if (!string.IsNullOrEmpty(tempPhotoPreview))
+                            {
+                                <img src="@tempPhotoPreview" alt="Preview Foto" class="w-100 h-100 object-fit-cover rounded-circle" />
+                            }
+                            else if (!string.IsNullOrEmpty(userPhoto))
+                            {
+                                <img src="@userPhoto" alt="Foto Sekarang" class="w-100 h-100 object-fit-cover rounded-circle" />
+                            }
+                            else
+                            {
+                                <i class="fa fa-user fs-1 text-secondary"></i>
+                            }
+                        </div>
+                        <small class="text-muted d-block mt-2">Pratinjau Foto Profil Baru</small>
+                    </div>
+
+                    <!-- Input File Gambar -->
+                    <div class="mb-4 text-start">
+                        <label class="form-label small fw-bold text-secondary">Pilih Berkas Foto Baru (JPG, PNG)</label>
+                        <InputFile OnChange="OnPhotoFileSelected" class="form-control rounded-3" accept=".jpg,.jpeg,.png" />
+                        <small class="text-muted" style="font-size: 0.75rem;">Maksimal ukuran file: 2 MB. Disarankan foto formal atau pasfoto pekerja.</small>
+                    </div>
+
+                    <!-- Preset Avatar Korporat Cepat -->
+                    <div class="mb-3 text-start">
+                        <label class="form-label small fw-bold text-secondary d-block">Atau Pilih Avatar Korporat:</label>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" @onclick='() => SelectPresetAvatar("avatar1")'>
+                                Officer Pria
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" @onclick='() => SelectPresetAvatar("avatar2")'>
+                                Officer Wanita
+                            </button>
+                            <button type="button" class="btn btn-outline-danger btn-sm rounded-pill" @onclick='() => SelectPresetAvatar("avatar3")'>
+                                Engineer Kilang
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Tombol Aksi -->
+                    <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-4">
+                        @if (!string.IsNullOrEmpty(userPhoto))
+                        {
+                            <button type="button" class="btn btn-link text-danger text-decoration-none small p-0" @onclick="HapusFoto">
+                                <i class="fa fa-trash-alt me-1"></i> Hapus Foto
+                            </button>
+                        }
+                        else
+                        {
+                            <span></span>
+                        }
+
+                        <div class="d-flex gap-2">
+                            <button type="button" class="btn btn-light rounded-pill px-4" @onclick="ClosePhotoModal">Batal</button>
+                            <button type="button" class="btn btn-danger rounded-pill px-4 fw-semibold" @onclick="SimpanFotoProfil">
+                                Simpan Foto
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .fw-extrabold { font-weight: 800; }
+    
+    .preview-avatar-circle {
+        width: 120px;
+        height: 120px;
+        background-color: #f1f5f9;
+        border-radius: 50%;
+        border: 3px solid #fee2e2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+</style>
+
+@code {
+    private string activeTab = "biodata";
+    private string userRole = "User";
+    private string namaPekerja = "Pegawai Mutu";
+    private string emailPekerja = "pegawai@gmail.com";
+    private string nipPekerja = "78201923";
+    private string fungsiPekerja = "Quality Management & HSSE";
+    private string userPhoto = "";
+    private string tempPhotoPreview = "";
+
+    private bool showPhotoModal = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var storedRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+            if (!string.IsNullOrEmpty(storedRole))
+            {
+                userRole = storedRole;
+            }
+
+            var storedName = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userName");
+            if (!string.IsNullOrEmpty(storedName))
+            {
+                namaPekerja = storedName;
+            }
+            else
+            {
+                namaPekerja = userRole == "Administrator" ? "Administrator QMS" : "Pegawai Mutu RU II";
+            }
+
+            var storedEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+            if (!string.IsNullOrEmpty(storedEmail))
+            {
+                emailPekerja = storedEmail.Trim().ToLower();
+            }
+            else
+            {
+                emailPekerja = userRole == "Administrator" ? "admin.qms@pertamina.com" : "pegawai@gmail.com";
+            }
+
+            // Ambil foto spesifik khusus user ini (berbasis email unik)
+            var specificKey = $"userPhoto_{emailPekerja}";
+            var storedPhoto = await JSRuntime.InvokeAsync<string>("localStorage.getItem", specificKey);
+            if (!string.IsNullOrEmpty(storedPhoto))
+            {
+                userPhoto = storedPhoto;
+            }
+            else
+            {
+                // Jika belum ada di localStorage, cek dari API database
+                try
+                {
+                    var users = await ApiService.GetUsersAsync(emailPekerja);
+                    var found = users.FirstOrDefault(u => u.Email.Equals(emailPekerja, StringComparison.OrdinalIgnoreCase));
+                    if (found != null && !string.IsNullOrEmpty(found.PhotoUrl))
+                    {
+                        userPhoto = found.PhotoUrl;
+                        await JSRuntime.InvokeVoidAsync("localStorage.setItem", specificKey, userPhoto);
+                        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userPhoto", userPhoto);
+                    }
+                    else
+                    {
+                        userPhoto = "";
+                    }
+                }
+                catch
+                {
+                    userPhoto = "";
+                }
+            }
+
+            StateHasChanged();
+        }
+    }
+
+    private void SetTab(string tab)
+    {
+        activeTab = tab;
+    }
+
+    private void OpenPhotoModal()
+    {
+        tempPhotoPreview = userPhoto;
+        showPhotoModal = true;
+    }
+
+    private void ClosePhotoModal()
+    {
+        showPhotoModal = false;
+        tempPhotoPreview = "";
+    }
+
+    private async Task OnPhotoFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            // Batasi ukuran hingga 2 MB
+            if (file.Size > 2 * 1024 * 1024)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Ukuran berkas melebihi 2 MB!");
+                return;
+            }
+
+            try
+            {
+                var buffer = new byte[file.Size];
+                await file.OpenReadStream(2 * 1024 * 1024).ReadAsync(buffer);
+                var base64 = Convert.ToBase64String(buffer);
+                tempPhotoPreview = $"data:{file.ContentType};base64,{base64}";
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"Gagal memuat gambar: {ex.Message}");
+            }
+        }
+    }
+
+    private void SelectPresetAvatar(string type)
+    {
+        if (type == "avatar1")
+        {
+            tempPhotoPreview = "assets/img/avatars/avatar-1-md.jpg";
+        }
+        else if (type == "avatar2")
+        {
+            tempPhotoPreview = "assets/img/avatars/avatar-2-md.jpg";
+        }
+        else
+        {
+            tempPhotoPreview = "assets/img/avatars/avatar-3-md.jpg";
+        }
+    }
+
+    private async Task SimpanFotoProfil()
+    {
+        if (!string.IsNullOrEmpty(tempPhotoPreview))
+        {
+            userPhoto = tempPhotoPreview;
+            var cleanEmail = (emailPekerja ?? "").Trim().ToLower();
+            var specificKey = $"userPhoto_{cleanEmail}";
+
+            // 1. Simpan ke local storage dengan key khusus email user
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", specificKey, userPhoto);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userPhoto", userPhoto);
+
+            // 2. Sinkronkan ke database melalui REST API
+            await ApiService.UpdateUserPhotoAsync(cleanEmail, userPhoto);
+
+            // 3. Update UserState agar navbar reaktif
+            UserState.SetPhoto(userPhoto);
+
+            await JSRuntime.InvokeVoidAsync("alert", "Foto profil berhasil diperbarui!");
+            ClosePhotoModal();
+            Navigation.NavigateTo("/profile", forceLoad: true);
+        }
+        else
+        {
+            ClosePhotoModal();
+        }
+    }
+
+    private async Task HapusFoto()
+    {
+        userPhoto = "";
+        tempPhotoPreview = "";
+        var cleanEmail = (emailPekerja ?? "").Trim().ToLower();
+        var specificKey = $"userPhoto_{cleanEmail}";
+
+        // 1. Hapus dari local storage khusus user
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", specificKey);
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userPhoto");
+
+        // 2. Hapus dari database via API
+        await ApiService.UpdateUserPhotoAsync(cleanEmail, "");
+
+        // 3. Update UserState
+        UserState.SetPhoto("");
+
+        await JSRuntime.InvokeVoidAsync("alert", "Foto profil telah dihapus.");
+        ClosePhotoModal();
+        Navigation.NavigateTo("/profile", forceLoad: true);
+    }
+}

@@ -1,184 +1,182 @@
-﻿@page "/documents/upload"
-@inject HttpClient Http
-@inject NavigationManager NavManager
+@page "/documents/upload"
+@inject QmsApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
-<div class="row">
-    <div class="col-md-10 offset-md-1">
-        <div class="portlet">
-            <div class="portlet-header d-flex justify-content-between align-items-center">
-                <h3><i class="fa fa-upload"></i> Upload Dokumen Baru</h3>
-                <a href="documents" class="btn btn-sm btn-secondary">
-                    <i class="fa fa-arrow-left"></i> Kembali ke Daftar
-                </a>
-            </div>
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <!-- Header Halaman & Tombol Kembali -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <i class="fa fa-cloud-upload-alt text-danger"></i>
+                <span>Upload Dokumen Mutu Baru</span>
+            </h4>
+            <p class="text-muted small mb-0">Tambahkan berkas Pedoman, TKO, TKI, atau Format Mutu baru ke dalam sistem pengarsipan.</p>
+        </div>
+        <NavLink href="documents" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold small">
+            <i class="fa fa-arrow-left me-2"></i>Kembali ke Daftar
+        </NavLink>
+    </div>
 
-            <div class="portlet-content" id="content-center">
-                @if (!string.IsNullOrEmpty(errorMessage))
-                {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <strong>Error!</strong> @errorMessage
-                        <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
-                    </div>
-                }
+    @if (!isAdminChecked)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-danger" role="status"></div>
+            <p class="text-muted small mt-2">Memeriksa hak akses...</p>
+        </div>
+    }
+    else if (!isAdmin)
+    {
+        <div class="alert alert-warning rounded-4 p-4 text-center">
+            <i class="fa fa-exclamation-triangle fs-2 text-warning mb-2 d-block"></i>
+            <h5 class="fw-bold">Akses Terbatas</h5>
+            <p class="mb-3">Fitur upload dokumen mutu hanya dapat diakses oleh Administrator.</p>
+            <NavLink href="documents" class="btn btn-danger rounded-pill px-4">Kembali ke Dokumen</NavLink>
+        </div>
+    }
+    else
+    {
+        <!-- Form Upload Container -->
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger rounded-3 alert-dismissible fade show mb-4" role="alert">
+                            <strong>Perhatian:</strong> @errorMessage
+                            <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+                        </div>
+                    }
 
-                @if (!string.IsNullOrEmpty(successMessage))
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <strong>Berhasil!</strong> @successMessage
-                        <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
-                    </div>
-                }
+                    <EditForm Model="@uploadModel" OnValidSubmit="HandleSubmit">
+                        <DataAnnotationsValidator />
 
-                <EditForm Model="@uploadModel" OnValidSubmit="HandleFileUpload" class="form-horizontal">
-                    <DataAnnotationsValidator />
+                        <!-- Nama Berkas -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-dark">Nama Berkas / Judul File <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="uploadModel.FileName" class="form-control rounded-3" placeholder="Contoh: PEDOMAN-MUTU-RU2-2026.pdf" />
+                        </div>
 
-                    <div class="form-group row mb-3">
-                        <label class="col-md-3 col-form-label fw-bold">Kategori / Folder</label>
-                        <div class="col-md-8">
-                            <InputSelect @bind-Value="uploadModel.MenuId" class="form-control" required>
-                                <option value="0">-- Pilih Kategori --</option>
-                                @foreach (var item in categoryList)
+                        <!-- Kategori / Master Menu -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-dark">Kategori Menu Mutu <span class="text-danger">*</span></label>
+                            <select class="form-select rounded-3" @bind="uploadModel.MenuId">
+                                @foreach (var m in menuList)
                                 {
-                                    <option value="@item.MenuId">@item.MenuName @(!string.IsNullOrEmpty(item.SubMenu) ? $" - {item.SubMenu}" : "")</option>
+                                    <option value="@m.MenuId">@m.Menu - @m.Submenu</option>
                                 }
-                            </InputSelect>
+                            </select>
                         </div>
-                    </div>
 
-                    <div class="form-group row mb-3">
-                        <label class="col-md-3 col-form-label fw-bold">Judul / Nama Dokumen</label>
-                        <div class="col-md-8">
-                            <InputText @bind-Value="uploadModel.DocumentTitle" class="form-control" placeholder="Masukkan judul dokumen..." required />
+                        <!-- Ukuran & Format File -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Ukuran Berkas</label>
+                                <InputText @bind-Value="uploadModel.Size" class="form-control rounded-3" placeholder="Contoh: 2.4 MB" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Tipe MIME</label>
+                                <InputText @bind-Value="uploadModel.Type" class="form-control rounded-3" placeholder="application/pdf" />
+                            </div>
                         </div>
-                    </div>
 
-                    <div class="form-group row mb-4">
-                        <label class="col-md-3 col-form-label fw-bold">Pilih File (PDF/DOCX)</label>
-                        <div class="col-md-8">
-                            <InputFile OnChange="OnInputFileChange" class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx" required />
-                            <small class="form-text text-muted mt-1 d-block">
-                                Ukuran maksimal berkas: 10 MB. Format yang diperbolehkan: .pdf, .docx, .xlsx
-                            </small>
-                        </div>
-                    </div>
+                        <hr class="my-4 text-muted opacity-25" />
 
-                    <div id="hr"><hr /></div>
-
-                    <div class="form-group row mt-3">
-                        <div class="col-md-8 offset-md-3">
-                            <button type="submit" class="btn btn-primary px-4" disabled="@isUploading">
-                                @if (isUploading)
+                        <!-- Action Buttons -->
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm" disabled="@isSubmitting">
+                                @if (isSubmitting)
                                 {
-                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-                                    <span>Mengunggah...</span>
+                                    <span class="spinner-border spinner-border-sm me-2"></span>
+                                    <span>Menyimpan ke API...</span>
                                 }
                                 else
                                 {
-                                    <span><i class="fa fa-cloud-upload me-1"></i> Upload Dokumen</span>
+                                    <i class="fa fa-cloud-upload-alt me-2"></i>
+                                    <span>Simpan &amp; Upload Dokumen</span>
                                 }
                             </button>
-                            <a href="documents" class="btn btn-outline-secondary ms-2">Batal</a>
+                            <NavLink href="documents" class="btn btn-light rounded-pill px-4 text-secondary">
+                                Batal
+                            </NavLink>
                         </div>
-                    </div>
-                </EditForm>
+                    </EditForm>
+                </div>
+            </div>
+
+            <!-- Panel Informasi / Ketentuan Upload -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 p-4 bg-light">
+                    <h6 class="fw-bold text-dark mb-3"><i class="fa fa-info-circle text-danger me-2"></i>Ketentuan Pengunggahan</h6>
+                    <ul class="text-muted small ps-3 mb-0 d-flex flex-column gap-2">
+                        <li>Dokumen yang diunggah akan otomatis tersimpan di database <strong>QMS API</strong>.</li>
+                        <li>Gunakan penamaan nomor/kode dokumen sesuai standar penomoran RU II Dumai.</li>
+                        <li>Format berkas yang direkomendasikan adalah <strong>PDF</strong> untuk menjaga kerapian tata letak.</li>
+                        <li>Dokumen yang disimpan akan langsung tampil di daftar Dokumen Mutu.</li>
+                    </ul>
+                </div>
             </div>
         </div>
-    </div>
+    }
 </div>
 
 @code {
-    private UploadFormModel uploadModel = new();
-    private List<CategoryItem> categoryList = new();
-    private IBrowserFile? selectedFile;
-    private bool isUploading = false;
+    private TbUpload uploadModel = new() { FileName = "", Size = "1.5 MB", Type = "application/pdf", MenuId = 1, Creator = "admin" };
+    private List<TbMenu> menuList = new();
+    private bool isAdmin = false;
+    private bool isAdminChecked = false;
+    private bool isSubmitting = false;
     private string? errorMessage;
-    private string? successMessage;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Mock data kategori
-        categoryList = new List<CategoryItem>
+        if (firstRender)
         {
-            new CategoryItem { MenuId = 1, MenuName = "Pedoman Mutu", SubMenu = "Level 1" },
-            new CategoryItem { MenuId = 2, MenuName = "Prosedur Kerja", SubMenu = "Level 2" },
-            new CategoryItem { MenuId = 3, MenuName = "Instruksi Kerja", SubMenu = "Level 3" },
-            new CategoryItem { MenuId = 4, MenuName = "Formulir Mutu", SubMenu = "Level 4" }
-        };
-        await Task.CompletedTask;
+            var role = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole") ?? "User";
+            isAdmin = role.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || role.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            isAdminChecked = true;
+
+            menuList = await ApiService.GetMenusAsync();
+            if (menuList.Any())
+            {
+                uploadModel.MenuId = menuList.First().MenuId;
+            }
+
+            StateHasChanged();
+        }
     }
 
-    private void OnInputFileChange(InputFileChangeEventArgs e)
+    private async Task HandleSubmit()
     {
-        selectedFile = e.File;
+        if (string.IsNullOrWhiteSpace(uploadModel.FileName))
+        {
+            errorMessage = "Nama berkas / dokumen tidak boleh kosong!";
+            return;
+        }
+
+        isSubmitting = true;
         errorMessage = null;
-
-        // Validasi ukuran berkas (misal max 10MB)
-        if (selectedFile.Size > 10 * 1024 * 1024)
-        {
-            errorMessage = "Ukuran file terlalu besar! Maksimal 10 MB.";
-            selectedFile = null;
-        }
-    }
-
-    private async Task HandleFileUpload()
-    {
-        if (uploadModel.MenuId == 0)
-        {
-            errorMessage = "Silakan pilih Kategori / Folder terlebih dahulu.";
-            return;
-        }
-
-        if (selectedFile == null)
-        {
-            errorMessage = "Silakan pilih berkas dokumen yang akan diunggah.";
-            return;
-        }
 
         try
         {
-            isUploading = true;
-            errorMessage = null;
-
-            // Simulasi HTTP multipart form upload ke API Backend
-            using var content = new MultipartFormDataContent();
-            using var stream = selectedFile.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
-            var streamContent = new StreamContent(stream);
-
-            content.Add(streamContent, "file", selectedFile.Name);
-            content.Add(new StringContent(uploadModel.MenuId.ToString()), "menu_id");
-            content.Add(new StringContent(uploadModel.DocumentTitle), "title");
-
-            // var response = await Http.PostAsync("api/documents/upload", content);
-            await Task.Delay(1000); // Simulasi delay proses upload
-
-            successMessage = "Dokumen berhasil diunggah!";
-            uploadModel = new();
-            selectedFile = null;
-
-            // Redirect kembali ke daftar setelah 1.5 detik
-            await Task.Delay(1500);
-            NavManager.NavigateTo("documents");
+            var success = await ApiService.CreateDocumentAsync(uploadModel);
+            if (success)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Dokumen mutu berhasil diupload ke database!");
+                Navigation.NavigateTo("documents");
+            }
+            else
+            {
+                errorMessage = "Gagal mengunggah dokumen ke API backend.";
+            }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Gagal mengunggah berkas: {ex.Message}";
+            errorMessage = $"Error: {ex.Message}";
         }
         finally
         {
-            isUploading = false;
+            isSubmitting = false;
         }
-    }
-
-    public class UploadFormModel
-    {
-        public int MenuId { get; set; }
-        public string DocumentTitle { get; set; } = string.Empty;
-    }
-
-    public class CategoryItem
-    {
-        public int MenuId { get; set; }
-        public string MenuName { get; set; } = string.Empty;
-        public string? SubMenu { get; set; }
     }
 }

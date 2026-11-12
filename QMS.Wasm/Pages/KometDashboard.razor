@@ -1,0 +1,542 @@
+﻿@page "/komet/dashboard"
+@page "/komet/{pageName}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 py-4">
+
+    <!-- Header & Breadcrumb -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="dashboard" class="text-decoration-none text-danger">Home</a></li>
+                    <li class="breadcrumb-item text-muted">KOMET</li>
+                    <li class="breadcrumb-item active text-capitalize">@GetTitle()</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-0 text-dark">
+                KOMET: <span class="text-danger">Komunitas Manajemen Pengetahuan</span>
+            </h4>
+            <p class="text-muted small mb-0">Platform Knowledge Management & Shared Inovasi Pertamina Patra Niaga - RU II Dumai.</p>
+        </div>
+
+        @if (isAdmin)
+        {
+            <button class="btn btn-danger rounded-pill px-4 shadow-sm fw-semibold" @onclick="OpenAddModal">
+                <i class="fa fa-plus-circle me-1"></i> Sharing Knowledge Baru
+            </button>
+        }
+    </div>
+
+    <!-- Stats Cards KOMET -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-danger">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">Total Karya Knowledge</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">@kometList.Count</h3>
+                    </div>
+                    <div class="bg-danger-subtle text-danger rounded-circle p-3">
+                        <i class="fa fa-lightbulb fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">Continuous Improvement</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">12</h3>
+                    </div>
+                    <div class="bg-primary-subtle text-primary rounded-circle p-3">
+                        <i class="fa fa-chart-line fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">Replikasi / Adopted</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">8</h3>
+                    </div>
+                    <div class="bg-success-subtle text-success rounded-circle p-3">
+                        <i class="fa fa-check-circle fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 border-start border-4 border-warning">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <div class="text-muted small fw-semibold">Kontributor Aktif</div>
+                        <h3 class="fw-bold text-dark mb-0 mt-1">15</h3>
+                    </div>
+                    <div class="bg-warning-subtle text-warning rounded-circle p-3">
+                        <i class="fa fa-users fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search & Filter Tab Kategori -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-lg-6">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted">
+                            <i class="fa fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0 ps-0" 
+                               placeholder="Cari materi pengetahuan, inovasi, abstrak, atau nama penulis..." 
+                               @bind="searchQuery" @bind:event="oninput" />
+                    </div>
+                </div>
+                <div class="col-lg-6">
+                    <ul class="nav nav-pills justify-content-lg-end gap-1">
+                        <li class="nav-item">
+                            <button class="nav-link btn-sm rounded-pill px-3 @(selectedKategori == "All" ? "active bg-danger" : "btn-light text-dark")" 
+                                    @onclick='() => FilterCategory("All")'>Semua</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link btn-sm rounded-pill px-3 @(selectedKategori == "Inovasi" ? "active bg-danger" : "btn-light text-dark")" 
+                                    @onclick='() => FilterCategory("Inovasi")'>Inovasi</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link btn-sm rounded-pill px-3 @(selectedKategori == "Best Practice" ? "active bg-danger" : "btn-light text-dark")" 
+                                    @onclick='() => FilterCategory("Best Practice")'>Best Practice</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link btn-sm rounded-pill px-3 @(selectedKategori == "Lessons Learned" ? "active bg-danger" : "btn-light text-dark")" 
+                                    @onclick='() => FilterCategory("Lessons Learned")'>Lessons Learned</button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Layout Utama: Grid Karya (Kiri 8 Kolom) + Sidebar Komunitas (Kanan 4 Kolom) -->
+    <div class="row g-4">
+        <!-- Kolom Kiri: Grid Kartu Knowledge KOMET -->
+        <div class="col-lg-8">
+            @if (FilteredList.Any())
+            {
+                <div class="row g-3">
+                    @foreach (var item in FilteredList)
+                    {
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm rounded-4 overflow-hidden position-relative">
+                                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                                    <div>
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge @GetBadgeCategoryClass(item.Kategori) rounded-pill px-3 py-1 font-monospace">
+                                                @item.Kategori
+                                            </span>
+                                            <small class="text-muted"><i class="fa fa-calendar-alt me-1"></i>@item.Tanggal.ToString("dd MMM yyyy")</small>
+                                        </div>
+
+                                        <h6 class="fw-bold text-dark mb-2 line-clamp-2" style="min-height: 44px;">
+                                            @item.Judul
+                                        </h6>
+
+                                        <p class="text-muted small mb-3 line-clamp-3" style="font-size: 0.825rem; min-height: 54px;">
+                                            @item.Abstrak
+                                        </p>
+                                    </div>
+
+                                    <div>
+                                        <hr class="my-2 opacity-25" />
+                                        <div class="d-flex justify-content-between align-items-center mt-2">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="bg-danger text-white rounded-circle d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; font-size: 0.75rem;">
+                                                    @GetInitial(item.Penulis)
+                                                </div>
+                                                <div>
+                                                    <span class="d-block fw-semibold text-dark small leading-tight">@item.Penulis</span>
+                                                    <small class="text-muted d-block" style="font-size: 0.7rem;"><i class="fa fa-eye me-1"></i>@item.Views Dilihat</small>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex align-items-center gap-1">
+                                                <button class="btn btn-sm btn-outline-danger rounded-pill px-3" @onclick="() => ShowDetail(item)">
+                                                    <i class="fa fa-book-open me-1"></i> Baca
+                                                </button>
+                                                @if (isAdmin)
+                                                {
+                                                    <button class="btn btn-sm btn-light text-danger rounded-circle" @onclick="() => DeleteItem(item)" title="Hapus">
+                                                        <i class="fa fa-trash"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="card border-0 shadow-sm rounded-4 p-5 text-center text-muted">
+                    <i class="fa fa-folder-open fs-1 mb-2 opacity-50 text-danger"></i>
+                    <h6 class="fw-bold">Belum ada materi KOMET yang cocok</h6>
+                    <p class="small mb-0">Coba ubah kata kunci pencarian atau kategori filter kamu.</p>
+                </div>
+            }
+        </div>
+
+        <!-- Kolom Kanan: Top Kontributor & Highlight Inovasi -->
+        <div class="col-lg-4">
+            <!-- Top Kontributor Card -->
+            <div class="card border-0 shadow-sm rounded-4 mb-4">
+                <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="fa fa-trophy text-warning me-2"></i>Top Kontributor KOMET 2026
+                    </h6>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold text-danger">#1</span>
+                            <div>
+                                <span class="fw-bold text-dark d-block small">Fungsi Maintenance RU II</span>
+                                <small class="text-muted" style="font-size: 0.7rem;">8 Karya Inovasi Dipublish</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-danger-subtle text-danger rounded-pill">1,420 Views</span>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold text-primary">#2</span>
+                            <div>
+                                <span class="fw-bold text-dark d-block small">Process Engineering Dumai</span>
+                                <small class="text-muted" style="font-size: 0.7rem;">5 Karya Inovasi Dipublish</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-primary-subtle text-primary rounded-pill">980 Views</span>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fw-bold text-success">#3</span>
+                            <div>
+                                <span class="fw-bold text-dark d-block small">Fungsi Inspection & HSSE</span>
+                                <small class="text-muted" style="font-size: 0.7rem;">4 Karya Inovasi Dipublish</small>
+                            </div>
+                        </div>
+                        <span class="badge bg-success-subtle text-success rounded-pill">750 Views</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Banner Pedoman KOMET -->
+            <div class="card border-0 bg-danger text-white rounded-4 shadow-sm p-4">
+                <h6 class="fw-bold"><i class="fa fa-info-circle me-2"></i>Tahukah Anda?</h6>
+                <p class="small mb-3 text-white-50">
+                    Setiap pekerja Pertamina RU II Dumai dapat mengajukan karya tulis inovasi atau Best Practice operasional untuk mendapatkan sertifikat kredit poin KOMET.
+                </p>
+                @if (isAdmin)
+                {
+                    <button class="btn btn-light text-danger btn-sm rounded-pill fw-bold w-100" @onclick="OpenAddModal">
+                        <i class="fa fa-upload me-1"></i> Upload Karya Sekarang
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL TAMBAH KOMET (Khusus Admin) -->
+@if (showAddModal && isAdmin)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 bg-danger text-white rounded-top-4">
+                    <h5 class="modal-header-title fw-bold mb-0">
+                        <i class="fa fa-lightbulb me-2"></i>Tambah Knowledge Sharing KOMET
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseAddModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Kategori Knowledge *</label>
+                            <select class="form-select" @bind="newItem.Kategori">
+                                <option value="Inovasi">Inovasi Operasional</option>
+                                <option value="Best Practice">Best Practice</option>
+                                <option value="Lessons Learned">Lessons Learned</option>
+                                <option value="Standard Operating">Standard Operating</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small text-secondary">Penulis / Fungsi *</label>
+                            <input type="text" class="form-control" placeholder="Contoh: Fungsi Maintenance RU II" @bind="newItem.Penulis" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-secondary">Judul Pengetahuan / Inovasi *</label>
+                            <input type="text" class="form-control" placeholder="Masukkan judul materi KOMET" @bind="newItem.Judul" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-secondary">Abstrak Ringkas *</label>
+                            <textarea class="form-control" rows="3" placeholder="Tuliskan ulasan ringkas mengenai materi inovasi ini..." @bind="newItem.Abstrak"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold small text-secondary">URL / Link File PDF Dokumen</label>
+                            <input type="text" class="form-control" @bind="newItem.PdfUrl" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseAddModal">Batal</button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4" @onclick="SaveData">Simpan & Publish</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- MODAL BACA DETAIL & VIEWER PDF KOMET -->
+@if (showDetailModal && selectedItem != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.6); z-index: 1050;">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-0 bg-dark text-white rounded-top-4">
+                    <h5 class="modal-header-title fw-bold mb-0">
+                        <i class="fa fa-book-open me-2 text-danger"></i>Detail & Viewer Dokumen Knowledge KOMET
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDetailModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <div>
+                            <span class="badge @GetBadgeCategoryClass(selectedItem.Kategori) mb-2">@selectedItem.Kategori</span>
+                            <h5 class="fw-bold text-dark mb-1">@selectedItem.Judul</h5>
+                            <p class="text-muted small mb-0">Oleh <strong>@selectedItem.Penulis</strong> | Dipublish pada @selectedItem.Tanggal.ToString("dd MMMM yyyy")</p>
+                        </div>
+                        @if (isAdmin)
+                        {
+                            <a href="@selectedItem.PdfUrl" download target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                <i class="fa fa-download me-1"></i> Unduh File
+                            </a>
+                        }
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 mb-3 border">
+                        <strong class="d-block text-dark small mb-1"><i class="fa fa-quote-left text-danger me-1"></i>Abstrak Pengetahuan:</strong>
+                        <p class="small text-muted mb-0">@selectedItem.Abstrak</p>
+                    </div>
+
+                    <!-- PDF Viewer Tanpa Toolbar Download untuk User -->
+                    <div class="border rounded-3 overflow-hidden mt-3" style="height: 520px;">
+                        <iframe src="@($"{selectedItem.PdfUrl}#toolbar=0&navpanes=0")" 
+                                width="100%" 
+                                height="100%" 
+                                style="border: none;">
+                        </iframe>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light rounded-bottom-4">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" @onclick="CloseDetailModal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+</style>
+
+@code {
+    [Parameter]
+    public string? pageName { get; set; }
+
+    private bool isAdmin = false;
+    private string userRole = "User";
+
+    private string searchQuery = "";
+    private string selectedKategori = "All";
+    private List<KometItem> kometList = new();
+
+    private bool showAddModal = false;
+    private bool showDetailModal = false;
+    private KometItem newItem = new();
+    private KometItem? selectedItem;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole") ?? "User";
+            isAdmin = userRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || 
+                      userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        // Sample Data Dummy KOMET Berjumlah Lebih Banyak & Lengkap dengan Abstrak
+        kometList = new List<KometItem>
+        {
+            new KometItem { 
+                Kategori = "Inovasi", 
+                Judul = "Optimasi Sistem Pendingin Kilang Menggunakan Modul Efisiensi Pompa", 
+                Penulis = "Fungsi Maintenance RU II", 
+                Abstrak = "Studi ini membahas modifikasi katup dan otomatisasi debit air pendingin untuk meningkatkan efisiensi pendinginan Heat Exchanger Kilang Dumai sebesar 14%.", 
+                Tanggal = DateTime.Now.AddDays(-2), 
+                Views = 342, 
+                PdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+            },
+            new KometItem { 
+                Kategori = "Best Practice", 
+                Judul = "Standard Inspection Procedure untuk Pressure Vessel Sub-Area 3", 
+                Penulis = "Fungsi Inspection", 
+                Abstrak = "Panduan inspeksi berkala tabung bertekanan berstandar ASME Section VIII untuk menjamin keamanan operasional dan mencegah keretakan pipa korosif.", 
+                Tanggal = DateTime.Now.AddDays(-7), 
+                Views = 289, 
+                PdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+            },
+            new KometItem { 
+                Kategori = "Lessons Learned", 
+                Judul = "Evaluasi & Mitigasi Penurunan Tekanan Pada Pipe Rack Kilang", 
+                Penulis = "Tim Process Engineering", 
+                Abstrak = "Pelajaran dari insiden fluktuasi tekanan pipa uap tahun 2025 serta langkah mitigasi pencegahan penyumbatan deposit karbon.", 
+                Tanggal = DateTime.Now.AddDays(-15), 
+                Views = 412, 
+                PdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+            },
+            new KometItem { 
+                Kategori = "Inovasi", 
+                Judul = "Penerapan Sensor IoT Untuk Monitoring Suhu Pipa Distilasi Secara Real-Time", 
+                Penulis = "Fungsi Electrical & Instrument", 
+                Abstrak = "Implementasi pemantauan suhu berbasis jaringan nirkabel IoT yang terhubung ke dashboard kontrol room Kilang Dumai.", 
+                Tanggal = DateTime.Now.AddDays(-25), 
+                Views = 510, 
+                PdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+            },
+            new KometItem { 
+                Kategori = "Best Practice", 
+                Judul = "Prosedur Pengelolaan Limbah B3 Cair Dengan Teknik Filtrasi Membran", 
+                Penulis = "Fungsi HSSE Environment", 
+                Abstrak = "Metode penanganan limbah B3 cair terpadu yang meminimalkan kadar emisi buangan memenuhi ambang batas KLHK 2026.", 
+                Tanggal = DateTime.Now.AddDays(-30), 
+                Views = 195, 
+                PdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+            },
+            new KometItem { 
+                Kategori = "Standard Operating", 
+                Judul = "Prosedur Baku Pertolongan Pertama Emergency Response Tim Fire RU II", 
+                Penulis = "Fungsi HSSE Fire & Safety", 
+                Abstrak = "SOP kesiapsiagaan tim tanggap darurat dalam menangani potensi kebocoran gas bertekanan di area kompresor utama.", 
+                Tanggal = DateTime.Now.AddDays(-42), 
+                Views = 230, 
+                PdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+            }
+        };
+    }
+
+    private string GetTitle()
+    {
+        return string.IsNullOrEmpty(pageName) ? "Dashboard" : pageName.Replace("-", " ");
+    }
+
+    private void FilterCategory(string kat)
+    {
+        selectedKategori = kat;
+    }
+
+    private IEnumerable<KometItem> FilteredList =>
+        kometList.Where(k => (selectedKategori == "All" || k.Kategori.Equals(selectedKategori, StringComparison.OrdinalIgnoreCase)) &&
+                             (string.IsNullOrEmpty(searchQuery) ||
+                              k.Judul.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                              k.Penulis.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                              k.Abstrak.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)));
+
+    private string GetBadgeCategoryClass(string kat)
+    {
+        return kat switch
+        {
+            "Inovasi" => "bg-danger-subtle text-danger border border-danger-subtle",
+            "Best Practice" => "bg-primary-subtle text-primary border border-primary-subtle",
+            "Lessons Learned" => "bg-warning-subtle text-dark border border-warning-subtle",
+            _ => "bg-success-subtle text-success border border-success-subtle"
+        };
+    }
+
+    private string GetInitial(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "K";
+        var parts = name.Split(' ');
+        return parts.Length > 1 ? $"{parts[0][0]}{parts[1][0]}" : $"{parts[0][0]}";
+    }
+
+    private void OpenAddModal()
+    {
+        newItem = new KometItem { 
+            Tanggal = DateTime.Now, 
+            Kategori = "Inovasi", 
+            PdfUrl = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" 
+        };
+        showAddModal = true;
+    }
+
+    private void CloseAddModal() => showAddModal = false;
+
+    private void SaveData()
+    {
+        if (!string.IsNullOrWhiteSpace(newItem.Judul))
+        {
+            kometList.Insert(0, newItem);
+            showAddModal = false;
+        }
+    }
+
+    private void ShowDetail(KometItem item)
+    {
+        item.Views++;
+        selectedItem = item;
+        showDetailModal = true;
+    }
+
+    private void CloseDetailModal() => showDetailModal = false;
+
+    private void DeleteItem(KometItem item)
+    {
+        kometList.Remove(item);
+    }
+
+    public class KometItem
+    {
+        public string Kategori { get; set; } = "Inovasi";
+        public string Judul { get; set; } = "";
+        public string Penulis { get; set; } = "";
+        public string Abstrak { get; set; } = "Deskripsi abstrak materi karya inovasi KOMET Pertamina RU II Dumai.";
+        public DateTime Tanggal { get; set; } = DateTime.Now;
+        public int Views { get; set; } = 100;
+        public string PdfUrl { get; set; } = "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
+    }
+}

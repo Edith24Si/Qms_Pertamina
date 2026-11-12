@@ -1,0 +1,228 @@
+@page "/cip/klinik"
+@inject IJSRuntime JSRuntime
+
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="fw-bold text-danger mb-0"><i class="fa fa-user-md me-2"></i>Klinik CIP</h3>
+        @if (isAdmin)
+        {
+            <button class="btn btn-danger btn-sm rounded-pill px-3" @onclick="OpenAddModal">
+                <i class="fa fa-plus me-1"></i> Jadwalkan Bimbingan
+            </button>
+        }
+    </div>
+
+    <div class="mb-3">
+        <input type="text" class="form-control" placeholder="Cari nama gugus / konsultan..." @bind="searchQuery" @bind:event="oninput" />
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Gugus</th>
+                            <th>Konsultan / Mentor</th>
+                            <th>Jadwal Konsultasi</th>
+                            <th>Status</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredList.Any())
+                        {
+                            int no = 1;
+                            @foreach (var item in FilteredList)
+                            {
+                                <tr>
+                                    <td>@(no++)</td>
+                                    <td class="fw-semibold">@item.NamaGugus</td>
+                                    <td>@item.Konsultan</td>
+                                    <td>@item.Jadwal.ToString("dd MMM yyyy, HH:mm") WIB</td>
+                                    <td>
+                                        <span class="badge @(item.Status == "Selesai" ? "bg-success" : item.Status == "Disetujui" ? "bg-primary" : "bg-warning text-dark")">
+                                            @item.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <button class="btn btn-icon btn-soft-primary" @onclick="() => ViewItem(item)" title="Lihat Sesi Klinik">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" @onclick="() => EditItem(item)" title="Edit">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-soft-danger" @onclick="() => DeleteItem(item.Id)" title="Hapus">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="6" class="text-center py-3 text-muted">Data tidak ditemukan.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isModalOpen && isAdmin)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">@(currentItem.Id == 0 ? "Tambah" : "Edit") Sesi Konsultasi</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nama Gugus</label>
+                        <input type="text" class="form-control" @bind="currentItem.NamaGugus" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Konsultan / Mentor</label>
+                        <input type="text" class="form-control" @bind="currentItem.Konsultan" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Jadwal</label>
+                            <input type="datetime-local" class="form-control" @bind="currentItem.Jadwal" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Status</label>
+                            <select class="form-select" @bind="currentItem.Status">
+                                <option value="Menunggu">Menunggu</option>
+                                <option value="Disetujui">Disetujui</option>
+                                <option value="Selesai">Selesai</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Batal</button>
+                    <button class="btn btn-danger" @onclick="SaveItem">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isViewModalOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold fs-6">Detail Klinik Mutu CIP</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseViewModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <h6 class="fw-bold text-dark mb-1">@currentItem.NamaGugus</h6>
+                    <p class="text-muted small mb-3"><i class="fa fa-user-md text-info me-1"></i> Konsultan: @currentItem.Konsultan</p>
+                    <div class="p-3 bg-light rounded-3 mb-2 small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Jadwal Sesi:</span>
+                            <span class="fw-bold">@currentItem.Jadwal.ToString("dd MMMM yyyy HH:mm") WIB</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Status:</span>
+                            <span class="badge @(currentItem.Status == "Selesai" ? "bg-success" : currentItem.Status == "Disetujui" ? "bg-primary" : "bg-warning text-dark")">@currentItem.Status</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-light rounded-pill px-4" @onclick="CloseViewModal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public class KlinikModel
+    {
+        public int Id { get; set; }
+        public string NamaGugus { get; set; } = "";
+        public string Konsultan { get; set; } = "";
+        public DateTime Jadwal { get; set; } = DateTime.Now;
+        public string Status { get; set; } = "Menunggu";
+    }
+
+    private List<KlinikModel> items = new()
+    {
+        new KlinikModel { Id = 1, NamaGugus = "Gugus Kilang Maju", Konsultan = "Bambang Sujatmiko", Jadwal = new DateTime(2026, 3, 10, 09, 00, 0), Status = "Disetujui" },
+        new KlinikModel { Id = 2, NamaGugus = "FT-PCP EcoRefinery", Konsultan = "Dewi Lestari", Jadwal = new DateTime(2026, 3, 12, 14, 00, 0), Status = "Menunggu" },
+        new KlinikModel { Id = 3, NamaGugus = "Gugus SmartMaintenance", Konsultan = "Rudi Hermawan", Jadwal = new DateTime(2026, 2, 25, 10, 30, 0), Status = "Selesai" }
+    };
+
+    private bool isAdmin = false;
+    private string userRole = "User";
+    private string searchQuery = "";
+    private bool isModalOpen = false;
+    private bool isViewModalOpen = false;
+    private KlinikModel currentItem = new();
+
+    private void ViewItem(KlinikModel item)
+    {
+        currentItem = new KlinikModel
+        {
+            Id = item.Id,
+            NamaGugus = item.NamaGugus,
+            Konsultan = item.Konsultan,
+            Jadwal = item.Jadwal,
+            Status = item.Status
+        };
+        isViewModalOpen = true;
+    }
+
+    private void CloseViewModal() => isViewModalOpen = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole") ?? "User";
+            isAdmin = userRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase) ||
+                      userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<KlinikModel> FilteredList =>
+        string.IsNullOrWhiteSpace(searchQuery)
+        ? items
+        : items.Where(x => x.NamaGugus.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                           x.Konsultan.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private void OpenAddModal() { currentItem = new KlinikModel { Jadwal = DateTime.Now }; isModalOpen = true; }
+    private void EditItem(KlinikModel item) { currentItem = new KlinikModel { Id = item.Id, NamaGugus = item.NamaGugus, Konsultan = item.Konsultan, Jadwal = item.Jadwal, Status = item.Status }; isModalOpen = true; }
+    private void CloseModal() => isModalOpen = false;
+
+    private void SaveItem()
+    {
+        if (currentItem.Id == 0)
+        {
+            currentItem.Id = items.Any() ? items.Max(x => x.Id) + 1 : 1;
+            items.Add(currentItem);
+        }
+        else
+        {
+            var index = items.FindIndex(x => x.Id == currentItem.Id);
+            if (index != -1) items[index] = currentItem;
+        }
+        isModalOpen = false;
+    }
+
+    private void DeleteItem(int id) => items.RemoveAll(x => x.Id == id);
+}

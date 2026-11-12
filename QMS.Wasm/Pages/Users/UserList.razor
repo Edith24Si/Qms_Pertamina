@@ -1,0 +1,627 @@
+@page "/users"
+@inject QmsApiService ApiService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+
+    <!-- Header Halaman -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="dashboard" class="text-decoration-none text-danger">Beranda</a></li>
+                    <li class="breadcrumb-item active">Manajemen User</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <span>Daftar Pengguna &amp; Registrasi Pegawai</span>
+            </h4>
+            <p class="text-muted small mb-0">
+                Direktori data pekerja PT Pertamina Patra Niaga RU II Dumai yang telah terdaftar dalam sistem QMS.
+            </p>
+        </div>
+
+        <!-- Tombol Tambah User: HANYA ADA JIKA ADMIN -->
+        @if (isAdmin)
+        {
+            <button class="btn btn-danger rounded-pill px-4 py-2 shadow-sm fw-semibold d-inline-flex align-items-center gap-2"
+                    @onclick="OpenAddModal">
+                <i class="fa fa-plus-circle"></i>
+                <span>Tambah Pengguna Baru</span>
+            </button>
+        }
+    </div>
+
+    <!-- Alert Notifikasi -->
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert @(alertType == "success" ? "alert-success" : "alert-danger") rounded-4 alert-dismissible fade show mb-4 shadow-sm" role="alert">
+            <div class="d-flex align-items-center justify-content-between">
+                <span>@alertMessage</span>
+                <button type="button" class="btn-close" @onclick="() => alertMessage = string.Empty"></button>
+            </div>
+        </div>
+    }
+
+    <!-- Filter & Pencarian -->
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-3">
+            <div class="row g-3 align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-0 text-muted ps-3">
+                            <i class="fa fa-search"></i>
+                        </span>
+                        <input type="text" class="form-control bg-light border-0 ps-2"
+                               placeholder="Cari NIP, nama pekerja, akun Gmail, atau jabatan..."
+                               @bind="searchQuery" @bind:event="oninput" />
+                        @if (!string.IsNullOrEmpty(searchQuery))
+                        {
+                            <button class="btn btn-light border-0" @onclick="() => searchQuery = string.Empty">
+                                <i class="fa fa-times text-muted"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <div class="col-md-4 text-md-end">
+                    <span class="badge bg-light text-dark border px-3 py-2 fw-semibold rounded-pill">
+                        Total Terdaftar: <span class="text-danger fw-bold">@FilteredUsers.Count()</span> Akun
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Daftar Pengguna -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-body p-0">
+            @if (isLoading)
+            {
+                <div class="text-center py-5">
+                    <div class="spinner-border text-danger" role="status"></div>
+                    <p class="text-muted small mt-2">Memuat daftar pengguna...</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-light border-bottom border-light-subtle">
+                            <tr class="text-secondary small text-uppercase">
+                                <th class="ps-4 py-3" style="width: 60px;">No</th>
+                                <th class="py-3" style="width: 120px;">No. Pekerja (NIP)</th>
+                                <th class="py-3" style="min-width: 220px;">Nama Pekerja</th>
+                                <th class="py-3" style="min-width: 220px;">Akun Gmail</th>
+                                <th class="py-3" style="min-width: 180px;">Jabatan &amp; Fungsi</th>
+                                <th class="py-3 text-center" style="width: 120px;">Role</th>
+                                <th class="py-3" style="width: 150px;">Tanggal Daftar</th>
+                                <th class="text-center pe-4 py-3" style="min-width: 120px;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (FilteredUsers.Any())
+                            {
+                                int no = 1;
+                                @foreach (var user in FilteredUsers)
+                                {
+                                    <tr>
+                                        <td class="ps-4 fw-semibold text-muted small">@(no++)</td>
+                                        <td>
+                                            <span class="badge bg-danger-subtle text-danger font-monospace px-2 py-1 fw-bold">
+                                                @user.NoPeg
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                @if (!string.IsNullOrEmpty(user.PhotoUrl))
+                                                {
+                                                    <img src="@user.PhotoUrl" alt="Foto" class="rounded-circle object-fit-cover shadow-sm" style="width: 34px; height: 34px;" />
+                                                }
+                                                else
+                                                {
+                                                    <div class="user-avatar-circle">
+                                                        <i class="fa fa-user text-secondary"></i>
+                                                    </div>
+                                                }
+                                                <div>
+                                                    <span class="fw-bold text-dark d-block">@user.FullName</span>
+                                                    <small class="text-muted font-monospace" style="font-size: 0.72rem;">@@@user.Username</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="text-dark small fw-medium">@user.Email</span>
+                                            <span class="badge bg-light text-secondary border small ms-1" style="font-size: 0.65rem;">Gmail</span>
+                                        </td>
+                                        <td>
+                                            <span class="fw-semibold text-dark d-block small">@(string.IsNullOrEmpty(user.Jabatan) ? "-" : user.Jabatan)</span>
+                                            <small class="text-muted">@(string.IsNullOrEmpty(user.Fungsi) ? "Refinery Unit II Dumai" : user.Fungsi)</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-1 fw-semibold small">
+                                                @user.Role
+                                            </span>
+                                        </td>
+                                        <td class="small text-muted">
+                                            @user.RegisteredAt
+                                        </td>
+                                        
+                                        <!-- Kolom Aksi: User HANYA View, Admin SEMUA (View, Edit, Hapus) -->
+                                        <td class="text-center pe-4">
+                                            <div class="d-inline-flex align-items-center gap-1">
+                                                <!-- VIEW: Muncul untuk User dan Admin -->
+                                                <button class="btn btn-icon btn-soft-primary" 
+                                                        title="Lihat Detail Profil Pengguna" 
+                                                        @onclick="() => OpenViewModal(user)">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+
+                                                <!-- EDIT & HAPUS: HANYA ADA JIKA ADMIN -->
+                                                @if (isAdmin)
+                                                {
+                                                    <button class="btn btn-icon btn-soft-warning" 
+                                                            title="Edit Data Pengguna" 
+                                                            @onclick="() => OpenEditModal(user)">
+                                                        <i class="fa fa-pencil fa-pen"></i>
+                                                    </button>
+                                                    <button class="btn btn-icon btn-soft-danger" 
+                                                            title="Hapus Akun Pengguna" 
+                                                            @onclick="() => OpenDeleteConfirm(user)">
+                                                        <i class="fa fa-trash fa-trash-alt"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center py-5 text-muted">
+                                        <div class="py-4">
+                                            <i class="fa fa-users fs-1 text-secondary mb-3 d-block opacity-50"></i>
+                                            <h6 class="fw-bold text-dark">Tidak ada data pengguna ditemukan</h6>
+                                            <p class="small text-muted mb-0">
+                                                @(string.IsNullOrEmpty(searchQuery) ? "Belum ada pekerja yang mendaftar." : $"Tidak ada hasil untuk pencarian '{searchQuery}'.")
+                                            </p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal View Detail Pengguna (User & Admin) -->
+@if (showViewModal && viewingUser != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header border-0 pb-0 pt-4 px-4 bg-light">
+                    <h5 class="fw-bold text-dark mb-0">Detail Akun Terdaftar</h5>
+                    <button type="button" class="btn-close" @onclick="() => showViewModal = false"></button>
+                </div>
+                <div class="modal-body p-4 text-center bg-light">
+                    @if (!string.IsNullOrEmpty(viewingUser.PhotoUrl))
+                    {
+                        <img src="@viewingUser.PhotoUrl" alt="Foto" class="rounded-circle shadow mb-3 object-fit-cover" style="width: 80px; height: 80px;" />
+                    }
+                    else
+                    {
+                        <div class="user-avatar-large mx-auto mb-3">
+                            <i class="fa fa-user-circle text-danger fs-1"></i>
+                        </div>
+                    }
+
+                    <h5 class="fw-bold text-dark mb-1">@viewingUser.FullName</h5>
+                    <span class="badge bg-danger px-3 py-1 rounded-pill mb-3">NIP: @viewingUser.NoPeg</span>
+
+                    <div class="card border-0 rounded-3 shadow-none text-start p-3 bg-white">
+                        <div class="row g-2 small">
+                            <div class="col-4 text-muted">Akun Gmail:</div>
+                            <div class="col-8 fw-semibold text-dark">@viewingUser.Email</div>
+
+                            <div class="col-4 text-muted">Username:</div>
+                            <div class="col-8 fw-semibold text-dark">@@@viewingUser.Username</div>
+
+                            <div class="col-4 text-muted">Jabatan:</div>
+                            <div class="col-8 fw-semibold text-dark">@(string.IsNullOrEmpty(viewingUser.Jabatan) ? "-" : viewingUser.Jabatan)</div>
+
+                            <div class="col-4 text-muted">Fungsi / Unit:</div>
+                            <div class="col-8 fw-semibold text-dark">@(string.IsNullOrEmpty(viewingUser.Fungsi) ? "-" : viewingUser.Fungsi)</div>
+
+                            <div class="col-4 text-muted">No. Kontak:</div>
+                            <div class="col-8 fw-semibold text-dark">@(string.IsNullOrEmpty(viewingUser.Phone) ? "-" : viewingUser.Phone)</div>
+
+                            <div class="col-4 text-muted">Role Akses:</div>
+                            <div class="col-8"><span class="badge bg-primary">@viewingUser.Role</span></div>
+
+                            <div class="col-4 text-muted">Tgl. Terdaftar:</div>
+                            <div class="col-8 text-muted">@viewingUser.RegisteredAt</div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button class="btn btn-secondary rounded-pill px-4" @onclick="() => showViewModal = false">Tutup</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Tambah User Baru (Admin Only) -->
+@if (showAddModal && isAdmin)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="fw-bold text-dark mb-0">Tambah Akun Pegawai Baru</h5>
+                    <button type="button" class="btn-close" @onclick="() => showAddModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">NIP *</label>
+                            <input type="number" class="form-control rounded-3" @bind="newUser.NoPeg" placeholder="Contoh: 748123" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Nama Lengkap *</label>
+                            <input type="text" class="form-control rounded-3" @bind="newUser.FullName" placeholder="Nama pekerja" required />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-secondary">Akun Gmail * <span class="text-danger">(Wajib @@gmail.com)</span></label>
+                            <input type="email" class="form-control rounded-3" @bind="newUser.Email" placeholder="nama@gmail.com" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Jabatan</label>
+                            <input type="text" class="form-control rounded-3" @bind="newUser.Jabatan" placeholder="Contoh: QA Officer" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Fungsi / Unit</label>
+                            <input type="text" class="form-control rounded-3" @bind="newUser.Fungsi" placeholder="Contoh: Quality Management" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">No. Handphone</label>
+                            <input type="text" class="form-control rounded-3" @bind="newUser.Phone" placeholder="08xxxxxxxxxx" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Kata Sandi *</label>
+                            <input type="password" class="form-control rounded-3" @bind="newUser.Password" placeholder="Minimal 4 karakter" required />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-4 border-top mt-4">
+                        <button class="btn btn-light rounded-pill px-4" @onclick="() => showAddModal = false">Batal</button>
+                        <button class="btn btn-danger rounded-pill px-4 fw-semibold" @onclick="SaveNewUser" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Menyimpan...</span>
+                            }
+                            else
+                            {
+                                <span>Simpan Pengguna</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Edit User (Admin Only) -->
+@if (showEditModal && editingUser != null && isAdmin)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="fw-bold text-dark mb-0">Edit Data Pengguna</h5>
+                    <button type="button" class="btn-close" @onclick="() => showEditModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">NIP</label>
+                            <input type="number" class="form-control rounded-3 bg-light" value="@editingUser.NoPeg" disabled />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Nama Lengkap</label>
+                            <input type="text" class="form-control rounded-3" @bind="editingUser.FullName" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-secondary">Email Gmail</label>
+                            <input type="email" class="form-control rounded-3" @bind="editingUser.Email" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Jabatan</label>
+                            <input type="text" class="form-control rounded-3" @bind="editingUser.Jabatan" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-secondary">Fungsi</label>
+                            <input type="text" class="form-control rounded-3" @bind="editingUser.Fungsi" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-bold text-secondary">No. Handphone</label>
+                            <input type="text" class="form-control rounded-3" @bind="editingUser.Phone" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-4 border-top mt-4">
+                        <button class="btn btn-light rounded-pill px-4" @onclick="() => showEditModal = false">Batal</button>
+                        <button class="btn btn-danger rounded-pill px-4 fw-semibold" @onclick="SaveEditUser" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-2"></span>
+                                <span>Menyimpan...</span>
+                            }
+                            else
+                            {
+                                <span>Simpan Perubahan</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Konfirmasi Hapus (Admin Only) -->
+@if (showDeleteModal && deletingUser != null && isAdmin)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.55); backdrop-filter: blur(2px);">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content border-0 rounded-4 shadow-lg text-center p-4">
+                <div class="bg-danger-subtle text-danger rounded-circle d-inline-flex p-3 mx-auto mb-3">
+                    <i class="fa fa-trash-alt fs-2"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1">Hapus Akun Pengguna?</h5>
+                <p class="text-muted small mb-4">
+                    Apakah Anda yakin ingin menghapus akun <strong>@deletingUser.FullName</strong> (@deletingUser.Email)?
+                </p>
+                <div class="d-flex justify-content-center gap-2">
+                    <button class="btn btn-light rounded-pill px-3" @onclick="() => showDeleteModal = false">Batal</button>
+                    <button class="btn btn-danger rounded-pill px-3 fw-semibold" @onclick="ConfirmDeleteUser" disabled="@isSubmitting">
+                        Ya, Hapus
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .user-avatar-circle {
+        width: 34px;
+        height: 34px;
+        background-color: #f1f5f9;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .user-avatar-large {
+        width: 80px;
+        height: 80px;
+        background-color: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Icon-only Button Styling */
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s ease;
+        font-size: 0.82rem;
+    }
+
+    .btn-icon:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-soft-primary { background-color: #e0f2fe; color: #0284c7; }
+    .btn-soft-primary:hover { background-color: #0284c7; color: #ffffff; }
+
+    .btn-soft-warning { background-color: #fef3c7; color: #d97706; }
+    .btn-soft-warning:hover { background-color: #d97706; color: #ffffff; }
+
+    .btn-soft-danger { background-color: #fee2e2; color: #dc2626; }
+    .btn-soft-danger:hover { background-color: #dc2626; color: #ffffff; }
+</style>
+
+@code {
+    private List<TbRegisteredUser> allUsers = new();
+    private string searchQuery = string.Empty;
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+
+    private bool isAdmin = false;
+    private string userRole = "User";
+
+    private bool showViewModal = false;
+    private bool showAddModal = false;
+    private bool showEditModal = false;
+    private bool showDeleteModal = false;
+
+    private TbRegisteredUser? viewingUser;
+    private TbRegisteredUser? editingUser;
+    private TbRegisteredUser? deletingUser;
+    private TbRegisteredUser newUser = new() { Role = "Pegawai", Password = "user123" };
+
+    private string alertMessage = string.Empty;
+    private string alertType = "success";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole") ?? "User";
+            isAdmin = userRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase) ||
+                      userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+
+            if (!isAdmin)
+            {
+                Navigation.NavigateTo("/dashboard", true);
+                return;
+            }
+
+            await LoadUsersAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        isLoading = true;
+        allUsers = await ApiService.GetUsersAsync();
+        isLoading = false;
+    }
+
+    private IEnumerable<TbRegisteredUser> FilteredUsers =>
+        allUsers.Where(u =>
+            string.IsNullOrWhiteSpace(searchQuery) ||
+            u.FullName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+            u.Email.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+            u.NoPeg.ToString().Contains(searchQuery) ||
+            (u.Jabatan != null && u.Jabatan.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)) ||
+            (u.Fungsi != null && u.Fungsi.Contains(searchQuery, StringComparison.OrdinalIgnoreCase))
+        ).OrderByDescending(u => u.Id);
+
+    private void OpenViewModal(TbRegisteredUser user)
+    {
+        viewingUser = user;
+        showViewModal = true;
+    }
+
+    private void OpenAddModal()
+    {
+        newUser = new TbRegisteredUser
+        {
+            Role = "Pegawai",
+            Password = "user123"
+        };
+        showAddModal = true;
+    }
+
+    private async Task SaveNewUser()
+    {
+        if (newUser.NoPeg <= 0 || string.IsNullOrWhiteSpace(newUser.FullName) || string.IsNullOrWhiteSpace(newUser.Email))
+        {
+            alertType = "danger";
+            alertMessage = "NIP, Nama Lengkap, dan Email wajib diisi!";
+            return;
+        }
+
+        if (!newUser.Email.Trim().EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            alertType = "danger";
+            alertMessage = "Email harus menggunakan domain @gmail.com!";
+            return;
+        }
+
+        isSubmitting = true;
+        var (success, msg, created) = await ApiService.RegisterAsync(newUser);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showAddModal = false;
+            alertType = "success";
+            alertMessage = "Pengguna baru berhasil ditambahkan!";
+            await LoadUsersAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = msg;
+        }
+    }
+
+    private void OpenEditModal(TbRegisteredUser user)
+    {
+        editingUser = new TbRegisteredUser
+        {
+            Id = user.Id,
+            NoPeg = user.NoPeg,
+            FullName = user.FullName,
+            Email = user.Email,
+            Jabatan = user.Jabatan,
+            Fungsi = user.Fungsi,
+            Phone = user.Phone,
+            Role = user.Role,
+            PhotoUrl = user.PhotoUrl
+        };
+        showEditModal = true;
+    }
+
+    private async Task SaveEditUser()
+    {
+        if (editingUser == null) return;
+
+        isSubmitting = true;
+        var success = await ApiService.UpdateUserAsync(editingUser.Id, editingUser);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showEditModal = false;
+            alertType = "success";
+            alertMessage = "Data pengguna berhasil diperbarui!";
+            await LoadUsersAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = "Gagal memperbarui data pengguna.";
+        }
+    }
+
+    private void OpenDeleteConfirm(TbRegisteredUser user)
+    {
+        deletingUser = user;
+        showDeleteModal = true;
+    }
+
+    private async Task ConfirmDeleteUser()
+    {
+        if (deletingUser == null) return;
+
+        isSubmitting = true;
+        var success = await ApiService.DeleteUserAsync(deletingUser.Id);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showDeleteModal = false;
+            alertType = "success";
+            alertMessage = $"Akun '{deletingUser.FullName}' berhasil dihapus.";
+            await LoadUsersAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = "Gagal menghapus pengguna.";
+        }
+    }
+}

@@ -1,160 +1,257 @@
-﻿@page "/gugus/acc"
-@inject HttpClient Http
+﻿@page "/gugus"
+@inject NavigationManager Navigation
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="portlet">
-            <div class="portlet-header">
-                <h3><i class="fa fa-check-square-o"></i> Acc Gugus</h3>
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">
+                <i class="fa fa-check-circle text-danger me-2"></i>Persetujuan (ACC) Gugus Mutu
+            </h4>
+            <p class="text-muted small mb-0">Manajemen verifikasi dan persetujuan usulan Risalah Gugus CIP, GKM, PKM, dan SS RU II Dumai.</p>
+        </div>
+        <NavLink href="gugus/detail" class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm">
+            <i class="fa fa-plus me-2"></i>Daftarkan Gugus Baru
+        </NavLink>
+    </div>
+
+    <!-- Cards Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-warning">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Menunggu ACC</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">@gugusList.Count(g => g.Status == "Pending")</h4>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-3">
+                        <i class="fa fa-clock fs-5"></i>
+                    </div>
+                </div>
             </div>
-            <div class="portlet-content" id="content-center">
-
-                <div class="alert alert-info">
-                    Klik nama gugus untuk melihat daftar anggota gugus!
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Disetujui (Approved)</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">@gugusList.Count(g => g.Status == "Approved")</h4>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-3">
+                        <i class="fa fa-check fs-5"></i>
+                    </div>
                 </div>
-
-                <!-- TABEL GUGUS PENDING (acc = 'N') -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-striped table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Pembuat Gugus</th>
-                                <th>Nama Gugus</th>
-                                <th>Kategori</th>
-                                <th>Judul</th>
-                                <th>Telp</th>
-                                <th>Option</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (pendingGugus.Count == 0)
-                            {
-                                <tr><td colspan="7" class="text-center">Tidak ada gugus yang menunggu persetujuan.</td></tr>
-                            }
-                            else
-                            {
-                                @foreach (var (item, index) in pendingGugus.Select((g, i) => (g, i + 1)))
-                                {
-                                    <tr>
-                                        <td>@index</td>
-                                        <td>@item.Creator</td>
-                                        <td><a href="gugus/detail/@item.IdGugus">@item.NamaGugus</a></td>
-                                        <td>@item.CategoryGugus</td>
-                                        <td>@item.Title</td>
-                                        <td>@item.Telp</td>
-                                        <td class="text-center">
-                                            <button class="btn btn-xs btn-secondary" @onclick="() => ApproveGugus(item.IdGugus)" title="Acc Gugus">
-                                                <i class="fa fa-check"></i>
-                                            </button>
-                                            <button class="btn btn-xs btn-primary" @onclick="() => DeleteGugus(item.IdGugus)" title="Delete">
-                                                <i class="fa fa-times"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
-                <div id="hr"><hr /></div>
-
-                <div class="alert alert-info">
-                    Nama Gugus yang telah disetujui!
-                </div>
-
-                <!-- TABEL GUGUS APPROVED (acc = 'Y') -->
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>No</th>
-                                <th>Pembuat Gugus</th>
-                                <th>Nama Gugus</th>
-                                <th>Kategori</th>
-                                <th>Judul</th>
-                                <th>Telp</th>
-                                <th>Option</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if (approvedGugus.Count == 0)
-                            {
-                                <tr><td colspan="7" class="text-center">Belum ada gugus yang disetujui.</td></tr>
-                            }
-                            else
-                            {
-                                @foreach (var (item, index) in approvedGugus.Select((g, i) => (g, i + 1)))
-                                {
-                                    <tr>
-                                        <td>@index</td>
-                                        <td>@item.Creator</td>
-                                        <td><a href="gugus/detail/@item.IdGugus">@item.NamaGugus</a></td>
-                                        <td>@item.CategoryGugus</td>
-                                        <td>@item.Title</td>
-                                        <td>@item.Telp</td>
-                                        <td class="text-center">
-                                            <button class="btn btn-xs btn-primary" @onclick="() => DeleteGugus(item.IdGugus)" title="Delete">
-                                                <i class="fa fa-times"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                }
-                            }
-                        </tbody>
-                    </table>
-                </div>
-
             </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-danger">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Perlu Revisi / Tolak</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">@gugusList.Count(g => g.Status == "Rejected")</h4>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-3">
+                        <i class="fa fa-times-circle fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Total Terdaftar</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">@gugusList.Count</h4>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3">
+                        <i class="fa fa-users fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">Filter Kategori Gugus</label>
+                <select class="form-select bg-light" @onchange="OnCategoryChanged">
+                    <option value="ALL">-- Semua Kategori --</option>
+                    <option value="CIP">CIP (Continuous Improvement Project)</option>
+                    <option value="GKM">GKM (Gugus Kendali Mutu)</option>
+                    <option value="PKM">PKM (Proyek Kendali Mutu)</option>
+                    <option value="SS">SS (Sumbang Saran)</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Status Approval</label>
+                <select class="form-select bg-light" @onchange="OnStatusChanged">
+                    <option value="ALL">-- Semua Status --</option>
+                    <option value="Pending">Menunggu ACC</option>
+                    <option value="Approved">Disetujui</option>
+                    <option value="Rejected">Perlu Revisi</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label small fw-bold text-muted">Cari Nama Gugus / Judul Risalah</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-end-0"><i class="fa fa-search text-muted"></i></span>
+                    <input type="text" class="form-control bg-light border-start-0" placeholder="Ketik kata kunci..." @bind="searchQuery" @bind:event="oninput" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fa fa-list text-danger me-2"></i>Daftar Pengajuan Gugus Mutu</h6>
+            <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 fw-bold">Menampilkan @FilteredGugus.Count() Gugus</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr class="small text-uppercase text-muted">
+                        <th class="ps-4">No</th>
+                        <th>Kode & Nama Gugus</th>
+                        <th>Judul Risalah Improvement</th>
+                        <th>Kategori</th>
+                        <th>Fungsi / Unit</th>
+                        <th class="text-center">Status ACC</th>
+                        <th class="text-center pe-4">Aksi Verifikasi</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    @if (FilteredGugus.Any())
+                    {
+                        var index = 1;
+                        @foreach (var item in FilteredGugus)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-semibold">@(index++)</td>
+                                <td>
+                                    <span class="fw-bold text-danger d-block">@item.Code</span>
+                                    <span class="fw-bold text-dark">@item.GugusName</span>
+                                </td>
+                                <td>
+                                    <span class="fw-semibold text-dark d-block">@item.Title</span>
+                                    <small class="text-muted">Fasilitator: @item.Facilitator</small>
+                                </td>
+                                <td><span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 fw-bold">@item.Category</span></td>
+                                <td class="text-muted">@item.Department</td>
+                                <td class="text-center">
+                                    @if (item.Status == "Pending")
+                                    {
+                                        <span class="badge bg-warning bg-opacity-15 text-dark rounded-pill px-3 py-1"><i class="fa fa-clock me-1"></i> Menunggu ACC</span>
+                                    }
+                                    else if (item.Status == "Approved")
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1"><i class="fa fa-check-circle me-1"></i> Disetujui</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1"><i class="fa fa-times-circle me-1"></i> Perlu Revisi</span>
+                                    }
+                                </td>
+                                <td class="text-center pe-4">
+                                    <div class="btn-group">
+                                        @if (item.Status == "Pending")
+                                        {
+                                            <button class="btn btn-sm btn-success rounded-2 me-1" @onclick="() => ApproveGugus(item)" title="Setujui (ACC)"><i class="fa fa-check"></i></button>
+                                            <button class="btn btn-sm btn-danger rounded-2 me-1" @onclick="() => RejectGugus(item)" title="Minta Revisi"><i class="fa fa-times"></i></button>
+                                        }
+                                        <button class="btn btn-sm btn-light border text-dark rounded-2" @onclick="() => ShowDetail(item)" title="Lihat Detail"><i class="fa fa-eye"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
 
+<!-- Modal Popup Detail Keterangan -->
+@if (selectedGugus != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header bg-danger text-white rounded-top-4">
+                    <h5 class="modal-title fw-bold"><i class="fa fa-info-circle me-2"></i>Detail Gugus Mutu</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseDetail"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="text-muted small d-block">Kode & Nama Gugus</label>
+                            <span class="fw-bold text-danger">@selectedGugus.Code</span> - <span class="fw-bold">@selectedGugus.GugusName</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small d-block">Kategori / Fungsi</label>
+                            <span class="badge bg-danger bg-opacity-10 text-danger me-2">@selectedGugus.Category</span>
+                            <span class="fw-semibold">@selectedGugus.Department</span>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="text-muted small d-block">Judul Risalah Improvement</label>
+                            <h6 class="fw-bold text-dark">@selectedGugus.Title</h6>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small d-block">Fasilitator</label>
+                            <span class="fw-semibold">@selectedGugus.Facilitator</span>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="text-muted small d-block">Status Saat Ini</label>
+                            <span class="fw-bold">@selectedGugus.Status</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" @onclick="CloseDetail">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
-    private List<GugusModel> pendingGugus = new();
-    private List<GugusModel> approvedGugus = new();
+    private string selectedCategory = "ALL";
+    private string selectedStatus = "ALL";
+    private string searchQuery = string.Empty;
+    private GugusModel? selectedGugus;
 
-    protected override async Task OnInitializedAsync()
+    private List<GugusModel> gugusList = new()
     {
-        // Simulasi fetch dari API (select * from tb_gugus)
-        pendingGugus = new List<GugusModel>
-        {
-            new GugusModel { IdGugus = 1, Creator = "748123", NamaGugus = "CIP RU Dumai", CategoryGugus = "GDM", Title = "Efisiensi Kilang", Telp = "0812345678" }
-        };
+        new GugusModel { Code = "CIP-RU2-2026-01", GugusName = "Gugus PC-80", Title = "Optimasi Konsumsi Energi Furnace Unit CDU#2 Melalui Preheater", Category = "CIP", Department = "Production & Refinery", Facilitator = "Budi Santoso", Status = "Pending" },
+        new GugusModel { Code = "GKM-RU2-2026-04", GugusName = "Gugus Flange Master", Title = "Penurunan Level Leaking Flange Pipe pada Line Crude Distillation", Category = "GKM", Department = "Maintenance Execution", Facilitator = "Ahmad Dahlan", Status = "Approved" },
+        new GugusModel { Code = "PKM-RU2-2026-02", GugusName = "Gugus Safety First", Title = "Digitalisasi Izin Kerja Aman (JSA Online) di Area Kilang Dumai", Category = "PKM", Department = "HSSE & Safety", Facilitator = "Siti Rahma", Status = "Pending" },
+        new GugusModel { Code = "SS-RU2-2026-12", GugusName = "SS-Eko Wijaya", Title = "Modifikasi Bracket Sensor Vibrasi Pump P-102B", Category = "SS", Department = "Reliability & Integrity", Facilitator = "Hendrikus", Status = "Rejected" }
+    };
 
-        approvedGugus = new List<GugusModel>
-        {
-            new GugusModel { IdGugus = 2, Creator = "750111", NamaGugus = "PC-Prove QA", CategoryGugus = "PKM", Title = "Sistem Otomasi QMS", Telp = "0812987654" }
-        };
-        await Task.CompletedTask;
-    }
+    private IEnumerable<GugusModel> FilteredGugus => gugusList
+        .Where(g => (selectedCategory == "ALL" || g.Category == selectedCategory) &&
+                    (selectedStatus == "ALL" || g.Status == selectedStatus) &&
+                    (string.IsNullOrWhiteSpace(searchQuery) ||
+                     g.GugusName.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                     g.Title.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                     g.Code.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)));
 
-    private async Task ApproveGugus(int id)
-    {
-        var item = pendingGugus.FirstOrDefault(g => g.IdGugus == id);
-        if (item != null)
-        {
-            pendingGugus.Remove(item);
-            approvedGugus.Add(item);
-        }
-        await Task.CompletedTask;
-    }
-
-    private async Task DeleteGugus(int id)
-    {
-        pendingGugus.RemoveAll(g => g.IdGugus == id);
-        approvedGugus.RemoveAll(g => g.IdGugus == id);
-        await Task.CompletedTask;
-    }
+    private void OnCategoryChanged(ChangeEventArgs e) => selectedCategory = e.Value?.ToString() ?? "ALL";
+    private void OnStatusChanged(ChangeEventArgs e) => selectedStatus = e.Value?.ToString() ?? "ALL";
+    private void ApproveGugus(GugusModel gugus) => gugus.Status = "Approved";
+    private void RejectGugus(GugusModel gugus) => gugus.Status = "Rejected";
+    private void ShowDetail(GugusModel gugus) => selectedGugus = gugus;
+    private void CloseDetail() => selectedGugus = null;
 
     public class GugusModel
     {
-        public int IdGugus { get; set; }
-        public string Creator { get; set; } = string.Empty;
-        public string NamaGugus { get; set; } = string.Empty;
-        public string CategoryGugus { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
+        public string GugusName { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
-        public string Telp { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string Facilitator { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
     }
 }

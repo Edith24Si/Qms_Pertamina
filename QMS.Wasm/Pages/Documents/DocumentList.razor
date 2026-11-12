@@ -1,204 +1,810 @@
-﻿@page "/documents"
-@page "/document"
-@page "/document/documentlist"
-@inject HttpClient Http
+@page "/documents"
+@inject QmsApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="portlet">
-            <div class="portlet-header d-flex justify-content-between align-items-center">
-                <h3><i class="fa fa-archive"></i> Data List</h3>
-                <a href="documents/upload" class="btn btn-sm btn-primary">
-                    <i class="fa fa-upload"></i> Upload Dokumen Baru
-                </a>
-            </div> <!-- /.portlet-header -->
+<div class="container-fluid px-4 px-lg-5 py-4">
+    
+    <!-- Header Halaman -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="dashboard" class="text-decoration-none text-danger">Beranda</a></li>
+                    <li class="breadcrumb-item active">Dokumen Mutu</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <i class="fa fa-folder-open text-danger"></i>
+                <span>Pengarsipan &amp; Manajemen Dokumen Mutu</span>
+            </h4>
+            <p class="text-muted small mb-0">
+                Pusat data berkas digital Surat Perintah (SP), Surat Keputusan (SK), Pedoman, dan Standar Mutu RU II Dumai.
+            </p>
+        </div>
 
-            <div class="portlet-content" id="content-center">
-                @if (!string.IsNullOrEmpty(alertMessage))
-                {
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <strong>Well done!</strong> @alertMessage
-                        <button type="button" class="btn-close" @onclick="() => alertMessage = null"></button>
-                    </div>
-                }
+        <!-- Tombol Tambah: HANYA MUNCUL JIKA ADMIN -->
+        @if (isAdmin)
+        {
+            <div>
+                <button class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2"
+                        @onclick="OpenAddModal">
+                    <i class="fa fa-plus-circle"></i>
+                    <span>Tambah Dokumen Baru</span>
+                </button>
+            </div>
+        }
+    </div>
 
-                <div class="form-horizontal">
-                    <div class="form-group row mb-4">
-                        <label class="col-md-3 col-form-label">Nama Folder</label>
-                        <div class="col-md-9">
-                            <select class="form-control" @onchange="OnMenuChanged">
-                                <option value="0" selected>-- Pilih Kategori --</option>
-                                @foreach (var item in menuList)
-                                {
-                                    <option value="@item.MenuId">
-                                        @item.MenuName @(!string.IsNullOrEmpty(item.SubMenu) ? $" - {item.SubMenu}" : "")
-                                    </option>
-                                }
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="hr"><hr /></div>
-
-                    <!-- Area Dynamic Content -->
-                    <div id="txtHint">
-                        @if (isLoading)
-                        {
-                            <div class="text-center my-4">
-                                <div class="spinner-border text-primary" role="status"></div>
-                                <p class="mt-2">Memuat dokumen...</p>
-                            </div>
-                        }
-                        else if (selectedMenuId == 0)
-                        {
-                            <div class="alert alert-info">Data info will be listed here. Please select category!</div>
-                        }
-                        else if (documentList.Count == 0)
-                        {
-                            <div class="alert alert-warning">Tidak ada berkas/dokumen pada kategori ini.</div>
-                        }
-                        else
-                        {
-                            <div class="table-responsive">
-                                <table class="table table-striped table-bordered table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th width="5%">No</th>
-                                            <th>Nama Berkas</th>
-                                            <th>Ukuran</th>
-                                            <th>Tanggal Upload</th>
-                                            <th width="15%" class="text-center">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var (doc, index) in documentList.Select((d, i) => (d, i + 1)))
-                                        {
-                                            <tr>
-                                                <td>@index</td>
-                                                <td>
-                                                    <i class="fa fa-file-pdf-o text-danger me-2"></i>
-                                                    <strong>@doc.FileName</strong>
-                                                </td>
-                                                <td>@doc.FileSizeFormatted</td>
-                                                <td>@doc.UploadDate.ToString("dd/MM/yyyy HH:mm")</td>
-                                                <td class="text-center">
-                                                    <a href="api/documents/download/@doc.Id" class="btn btn-xs btn-success" target="_blank" title="Download">
-                                                        <i class="fa fa-download"></i>
-                                                    </a>
-                                                    <button class="btn btn-xs btn-danger" @onclick="() => DeleteDocument(doc.Id)" title="Hapus">
-                                                        <i class="fa fa-trash"></i>
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
-                        }
-                    </div>
-                </div>
-            </div> <!-- /.portlet-content -->
-        </div> <!-- /.portlet -->
-    </div> <!-- /.col -->
-</div>
-
-@code {
-    private List<MenuItemModel> menuList = new();
-    private List<DocumentModel> documentList = new();
-    private int selectedMenuId = 0;
-    private bool isLoading = false;
-    private string? alertMessage;
-
-    protected override async Task OnInitializedAsync()
+    <!-- Alert Notifikasi Sukses / Error -->
+    @if (!string.IsNullOrEmpty(alertMessage))
     {
-        // 1. Fetch data folder/kategori dari database via Web API
-        try
-        {
-            // menuList = await Http.GetFromJsonAsync<List<MenuItemModel>>("api/menu");
-
-            // Mock Data Kategori (sesuai tb_menu)
-            menuList = new List<MenuItemModel>
-            {
-                new MenuItemModel { MenuId = 1, MenuName = "Pedoman Mutu", SubMenu = "Level 1" },
-                new MenuItemModel { MenuId = 2, MenuName = "Prosedur Kerja", SubMenu = "Level 2" },
-                new MenuItemModel { MenuId = 3, MenuName = "Instruksi Kerja", SubMenu = "Level 3" },
-                new MenuItemModel { MenuId = 4, MenuName = "Formulir Mutu", SubMenu = "Level 4" }
-            };
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error loading categories: {ex.Message}");
-        }
+        <div class="alert alert-@alertType alert-dismissible fade show border-0 rounded-4 shadow-sm mb-4 d-flex align-items-center gap-2" role="alert">
+            <i class="fa @(alertType == "success" ? "fa-check-circle" : "fa-exclamation-circle") fs-5"></i>
+            <div>@alertMessage</div>
+            <button type="button" class="btn-close" @onclick="() => alertMessage = string.Empty"></button>
+        </div>
     }
 
-    private async Task OnMenuChanged(ChangeEventArgs e)
-    {
-        if (int.TryParse(e.Value?.ToString(), out int menuId) && menuId > 0)
+    <!-- Filter & Pencarian Modern -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <label class="form-label small fw-bold text-muted mb-1">
+                    <i class="fa fa-filter me-1 text-danger"></i> Kategori / Submenu
+                </label>
+                <select class="form-select bg-light border-0 rounded-3 shadow-none py-2" @onchange="OnMenuChanged">
+                    <option value="0">-- Semua Kategori Dokumen (@allDocuments.Count Berkas) --</option>
+                    @foreach (var m in menuList)
+                    {
+                        <option value="@m.MenuId">@m.Menu &raquo; @m.Submenu</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-7">
+                <label class="form-label small fw-bold text-muted mb-1">
+                    <i class="fa fa-search me-1 text-danger"></i> Cari Judul / File Dokumen
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="fa fa-search"></i></span>
+                    <input type="text" class="form-control bg-light border-0 shadow-none py-2" 
+                           placeholder="Ketik nama berkas, nomor dokumen, atau pengunggah..." 
+                           @bind="searchQuery" @bind:event="oninput" />
+                    @if (!string.IsNullOrEmpty(searchQuery))
+                    {
+                        <button class="btn btn-light border-0 text-muted" @onclick="() => searchQuery = string.Empty">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Data Dokumen Mutu -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="fa fa-file-invoice text-danger fs-5"></i>
+                <h6 class="fw-bold mb-0 text-dark">Daftar Berkas Dokumen Mutu Terdaftar</h6>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 fw-bold">
+                    Total: @FilteredDocuments.Count Dokumen
+                </span>
+                <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3 py-1">
+                    Role: <strong class="@(isAdmin ? "text-danger" : "text-primary")">@(isAdmin ? "Admin" : "User")</strong>
+                </span>
+            </div>
+        </div>
+
+        @if (isLoading)
         {
-            selectedMenuId = menuId;
-            isLoading = true;
-
-            // 2. Fetch data file ter-upload berdasarkan kategori terpilih (sesuai query tb_upload)
-            try
-            {
-                // documentList = await Http.GetFromJsonAsync<List<DocumentModel>>($"api/documents/by-menu/{menuId}");
-
-                await Task.Delay(300); // Temporary delay simulation
-                documentList = GetMockDocuments(menuId);
-            }
-            finally
-            {
-                isLoading = false;
-            }
+            <div class="text-center py-5">
+                <div class="spinner-border text-danger" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted small mt-2 mb-0">Mengambil data dokumen mutu...</p>
+            </div>
         }
         else
         {
-            selectedMenuId = 0;
-            documentList.Clear();
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light border-bottom">
+                        <tr class="small text-uppercase text-muted" style="letter-spacing: 0.5px;">
+                            <th class="ps-4 py-3" style="width: 5%;">No</th>
+                            <th style="width: 38%;">Nama File Dokumen</th>
+                            <th style="width: 18%;">Kategori &amp; Submenu</th>
+                            <th style="width: 12%;">Pengunggah</th>
+                            <th style="width: 10%;">Ukuran</th>
+                            <th class="text-center pe-4" style="width: 17%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        @if (PagedDocuments.Any())
+                        {
+                            var index = (currentPage - 1) * pageSize + 1;
+                            @foreach (var doc in PagedDocuments)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-semibold text-muted">@(index++)</td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="doc-icon-box">
+                                                <i class="fa fa-file-pdf text-danger fs-5"></i>
+                                            </div>
+                                            <div class="text-truncate" style="max-width: 380px;">
+                                                <span class="fw-bold text-dark d-block text-truncate" title="@doc.FileName">
+                                                    @doc.FileName
+                                                </span>
+                                                <small class="text-muted d-block font-monospace" style="font-size: 0.72rem;">
+                                                    ID: #@doc.UploadId &bull; @doc.Type
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2 py-1 mb-1 d-inline-block">
+                                            @doc.Category
+                                        </span>
+                                        <small class="text-muted d-block text-truncate" style="max-width: 180px;">
+                                            @doc.Submenu
+                                        </small>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-1">
+                                            <i class="fa fa-user-circle text-muted"></i>
+                                            <span class="fw-semibold text-secondary">@doc.Creator</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted font-monospace">@FormatFileSize(doc.Size)</span>
+                                    </td>
+                                    
+                                    <!-- Kolom Aksi Berupa Icon Saja -->
+                                    <td class="text-center pe-4">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            
+                                            <!-- VIEW (User & Admin memiliki akses View) -->
+                                            <button class="btn btn-icon btn-soft-primary" 
+                                                    title="Lihat Detail Dokumen" 
+                                                    @onclick="() => OpenViewModal(doc)">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+
+                                            <!-- DOWNLOAD LANGSUNG -->
+                                            <a href="document/Template_Risalah_2026.pdf" 
+                                               download="@doc.FileName" 
+                                               class="btn btn-icon btn-soft-info" 
+                                               title="Unduh Berkas">
+                                                <i class="fa fa-download"></i>
+                                            </a>
+
+                                            <!-- EDIT & HAPUS: HANYA ADA JIKA ADMIN -->
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" 
+                                                        title="Edit Informasi Dokumen" 
+                                                        @onclick="() => OpenEditModal(doc)">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                
+                                                <button class="btn btn-icon btn-soft-danger" 
+                                                        title="Hapus Dokumen" 
+                                                        @onclick="() => OpenDeleteConfirm(doc)">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="fa fa-folder-open fs-1 text-danger opacity-50 d-block mb-2"></i>
+                                    <span class="fw-bold d-block">Tidak ada dokumen mutu yang ditemukan</span>
+                                    <small class="text-muted">Coba ubah kata kunci pencarian atau pilih kategori lain.</small>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            @if (TotalPages > 1)
+            {
+                <div class="card-footer bg-white py-3 px-4 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <small class="text-muted">
+                        Menampilkan @(((currentPage - 1) * pageSize) + 1) - @(Math.Min(currentPage * pageSize, FilteredDocuments.Count)) dari @FilteredDocuments.Count dokumen
+                    </small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <button class="page-link rounded-start-pill" @onclick="() => currentPage--">
+                                    <i class="fa fa-chevron-left"></i>
+                                </button>
+                            </li>
+                            @for (int p = Math.Max(1, currentPage - 2); p <= Math.Min(TotalPages, currentPage + 2); p++)
+                            {
+                                var pageNum = p;
+                                <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                    <button class="page-link" @onclick="() => currentPage = pageNum">@pageNum</button>
+                                </li>
+                            }
+                            <li class="page-item @(currentPage == TotalPages ? "disabled" : "")">
+                                <button class="page-link rounded-end-pill" @onclick="() => currentPage++">
+                                    <i class="fa fa-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- 1. MODAL TAMBAH DOKUMEN BARU (ADMIN ONLY) -->
+<!-- ============================================================== -->
+@if (showAddModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-danger text-white px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-cloud-upload-alt fs-4"></i>
+                        <h5 class="modal-title fw-bold">Tambah Berkas Dokumen Mutu</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showAddModal = false"></button>
+                </div>
+                <EditForm Model="@newDoc" OnValidSubmit="HandleSaveNewDoc">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-dark">Nama Berkas / Judul Dokumen <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       placeholder="Contoh: No._087_SP_BAPOR_RU2.pdf" 
+                                       @bind="newDoc.FileName" required />
+                                <small class="text-muted">Masukkan nama lengkap berkas dokumen mutu.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Kategori / Menu Sistem <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-3 py-2" @bind="newDoc.MenuId" required>
+                                    <option value="0">-- Pilih Kategori Menu --</option>
+                                    @foreach (var m in menuList)
+                                    {
+                                        <option value="@m.MenuId">@m.Menu &raquo; @m.Submenu</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Nama Pembuat / Pengunggah</label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       placeholder="admin" @bind="newDoc.Creator" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Estimasi Ukuran File (Bytes / KB)</label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       placeholder="Contoh: 1401368" @bind="newDoc.Size" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Tipe MIME Dokumen</label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       placeholder="application/pdf" @bind="newDoc.Type" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light px-4 py-3 border-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4 text-secondary" @onclick="() => showAddModal = false">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Menyimpan...</span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-save me-1"></i>
+                                <span>Simpan Dokumen</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ============================================================== -->
+<!-- 2. MODAL EDIT DOKUMEN (ADMIN ONLY) -->
+<!-- ============================================================== -->
+@if (showEditModal && editingDoc != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-warning text-dark px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-pen-square fs-4"></i>
+                        <h5 class="modal-title fw-bold">Edit Dokumen Mutu #@editingDoc.UploadId</h5>
+                    </div>
+                    <button type="button" class="btn-close" @onclick="() => showEditModal = false"></button>
+                </div>
+                <EditForm Model="@editingDoc" OnValidSubmit="HandleSaveEditDoc">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-bold text-dark">Nama Berkas Dokumen <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       @bind="editingDoc.FileName" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Kategori / Menu Sistem <span class="text-danger">*</span></label>
+                                <select class="form-select rounded-3 py-2" @bind="editingDoc.MenuId" required>
+                                    @foreach (var m in menuList)
+                                    {
+                                        <option value="@m.MenuId">@m.Menu &raquo; @m.Submenu</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Pengunggah / Creator</label>
+                                <input type="text" class="form-control rounded-3 py-2" @bind="editingDoc.Creator" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Ukuran Berkas (Bytes)</label>
+                                <input type="text" class="form-control rounded-3 py-2" @bind="editingDoc.Size" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Tipe Berkas</label>
+                                <input type="text" class="form-control rounded-3 py-2" @bind="editingDoc.Type" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light px-4 py-3 border-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4 text-secondary" @onclick="() => showEditModal = false">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Memperbarui...</span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-check me-1"></i>
+                                <span>Simpan Perubahan</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ============================================================== -->
+<!-- 3. MODAL VIEW DETAIL DOKUMEN (USER & ADMIN) -->
+<!-- ============================================================== -->
+@if (showViewModal && viewingDoc != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-dark text-white px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-file-alt text-danger fs-5"></i>
+                        <h6 class="modal-title fw-bold">Detail Informasi Dokumen Mutu</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showViewModal = false"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="doc-avatar mb-2">
+                            <i class="fa fa-file-pdf text-danger fs-1"></i>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1">@viewingDoc.FileName</h6>
+                        <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1">
+                            @viewingDoc.Category &bull; @viewingDoc.Submenu
+                        </span>
+                    </div>
+
+                    <ul class="list-group list-group-flush small border-top pt-2">
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">ID Dokumen:</span>
+                            <span class="fw-bold text-dark">#@viewingDoc.UploadId</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Pengunggah / Creator:</span>
+                            <span class="fw-semibold text-dark">@viewingDoc.Creator</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Ukuran Berkas:</span>
+                            <span class="fw-semibold font-monospace">@FormatFileSize(viewingDoc.Size)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Tipe MIME:</span>
+                            <span class="fw-semibold">@viewingDoc.Type</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Direktori Server:</span>
+                            <span class="small font-monospace text-muted text-truncate" style="max-width: 250px;">
+                                @viewingDoc.FileDir
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3 border-0 d-flex justify-content-between">
+                    <a href="document/Template_Risalah_2026.pdf" download="@viewingDoc.FileName" 
+                       class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2">
+                        <i class="fa fa-download"></i> Unduh File
+                    </a>
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" @onclick="() => showViewModal = false">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ============================================================== -->
+<!-- 4. MODAL KONFIRMASI HAPUS DOKUMEN (ADMIN ONLY) -->
+<!-- ============================================================== -->
+@if (showDeleteModal && deletingDoc != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-body p-4 text-center">
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex p-3 mb-3">
+                        <i class="fa fa-trash-alt fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Hapus Dokumen Mutu?</h5>
+                    <p class="text-muted small mb-3">
+                        Apakah Anda yakin ingin menghapus berkas berikut dari database sistem?
+                    </p>
+                    <div class="p-3 bg-light rounded-3 text-start small font-monospace mb-4">
+                        <strong class="text-danger">ID #@deletingDoc.UploadId:</strong> @deletingDoc.FileName
+                    </div>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4" @onclick="() => showDeleteModal = false">
+                            Batal
+                        </button>
+                        <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" 
+                                @onclick="ConfirmDeleteDoc" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Menghapus...</span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-trash-alt me-1"></i>
+                                <span>Ya, Hapus Sekarang</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .doc-icon-box {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: #fee2e2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .doc-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: #fee2e2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Icon Buttons Modern */
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s ease;
+        font-size: 0.82rem;
+    }
+
+    .btn-icon:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-soft-primary {
+        background-color: #e0f2fe;
+        color: #0284c7;
+    }
+    .btn-soft-primary:hover {
+        background-color: #0284c7;
+        color: #ffffff;
+    }
+
+    .btn-soft-info {
+        background-color: #ecfdf5;
+        color: #059669;
+    }
+    .btn-soft-info:hover {
+        background-color: #059669;
+        color: #ffffff;
+    }
+
+    .btn-soft-warning {
+        background-color: #fef3c7;
+        color: #d97706;
+    }
+    .btn-soft-warning:hover {
+        background-color: #d97706;
+        color: #ffffff;
+    }
+
+    .btn-soft-danger {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+    .btn-soft-danger:hover {
+        background-color: #dc2626;
+        color: #ffffff;
+    }
+
+    .pagination .page-link {
+        color: #334155;
+        border-color: #e2e8f0;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #dc2626;
+        border-color: #dc2626;
+        color: #ffffff;
+    }
+</style>
+
+@code {
+    private bool isAdmin = false;
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+
+    private List<DocumentDto> allDocuments = new();
+    private List<TbMenu> menuList = new();
+
+    private string searchQuery = string.Empty;
+    private int selectedMenuId = 0;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 12;
+
+    // Modals
+    private bool showAddModal = false;
+    private bool showEditModal = false;
+    private bool showViewModal = false;
+    private bool showDeleteModal = false;
+
+    private TbUpload newDoc = new();
+    private TbUpload? editingDoc;
+    private DocumentDto? viewingDoc;
+    private DocumentDto? deletingDoc;
+
+    // Alert
+    private string alertMessage = string.Empty;
+    private string alertType = "success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var role = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+                isAdmin = (role == "Administrator");
+                StateHasChanged();
+            }
+            catch {}
         }
     }
 
-    private async Task DeleteDocument(int id)
+    private async Task LoadDataAsync()
     {
-        // 3. Eksekusi hapus file dari database & storage server
-        // var res = await Http.DeleteAsync($"api/documents/{id}");
-
-        documentList.RemoveAll(d => d.Id == id);
-        alertMessage = "You successfully Delete File Data.";
-        await Task.CompletedTask;
-    }
-
-    private List<DocumentModel> GetMockDocuments(int menuId)
-    {
-        return menuId switch
+        isLoading = true;
+        try
         {
-            1 => new List<DocumentModel>
+            menuList = await ApiService.GetMenusAsync();
+            allDocuments = await ApiService.GetDocumentsAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading documents: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private List<DocumentDto> FilteredDocuments
+    {
+        get
+        {
+            var q = allDocuments.AsEnumerable();
+
+            if (selectedMenuId > 0)
             {
-                new DocumentModel { Id = 101, FileName = "Pedoman_Mutu_RU_Dumai_2026.pdf", FileSizeBytes = 2450000, UploadDate = DateTime.Now.AddDays(-5) }
-            },
-            2 => new List<DocumentModel>
+                q = q.Where(d => d.MenuId == selectedMenuId);
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
             {
-                new DocumentModel { Id = 201, FileName = "SOP_Pengelolaan_Limbah_Kilang.pdf", FileSizeBytes = 1120000, UploadDate = DateTime.Now.AddDays(-2) },
-                new DocumentModel { Id = 202, FileName = "SOP_Inspeksi_Pipa_Kilang_RU_II.pdf", FileSizeBytes = 3800000, UploadDate = DateTime.Now.AddDays(-1) }
-            },
-            _ => new List<DocumentModel>()
+                var s = searchQuery.Trim().ToLower();
+                q = q.Where(d => d.FileName.ToLower().Contains(s) ||
+                                 d.Creator.ToLower().Contains(s) ||
+                                 d.Category.ToLower().Contains(s) ||
+                                 d.Submenu.ToLower().Contains(s));
+            }
+
+            return q.ToList();
+        }
+    }
+
+    private List<DocumentDto> PagedDocuments =>
+        FilteredDocuments.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+
+    private int TotalPages => (int)Math.Ceiling((double)FilteredDocuments.Count / pageSize);
+
+    private void OnMenuChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int mid))
+        {
+            selectedMenuId = mid;
+            currentPage = 1;
+        }
+    }
+
+    private string FormatFileSize(string sizeStr)
+    {
+        if (long.TryParse(sizeStr, out long bytes))
+        {
+            if (bytes >= 1048576)
+                return $"{(bytes / 1048576.0):0.1f} MB";
+            if (bytes >= 1024)
+                return $"{(bytes / 1024.0):0.1f} KB";
+            return $"{bytes} B";
+        }
+        return sizeStr;
+    }
+
+    // Modal Actions
+    private void OpenAddModal()
+    {
+        newDoc = new TbUpload
+        {
+            Creator = "admin",
+            Type = "application/pdf",
+            Size = "1500000"
         };
+        showAddModal = true;
     }
 
-    public class MenuItemModel
+    private async Task HandleSaveNewDoc()
     {
-        public int MenuId { get; set; }
-        public string MenuName { get; set; } = string.Empty;
-        public string? SubMenu { get; set; }
+        isSubmitting = true;
+        var success = await ApiService.CreateDocumentAsync(newDoc);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showAddModal = false;
+            alertType = "success";
+            alertMessage = $"Dokumen '{newDoc.FileName}' berhasil ditambahkan ke database!";
+            await LoadDataAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = "Gagal menyimpan dokumen baru ke server.";
+        }
     }
 
-    public class DocumentModel
+    private void OpenEditModal(DocumentDto doc)
     {
-        public int Id { get; set; }
-        public string FileName { get; set; } = string.Empty;
-        public long FileSizeBytes { get; set; }
-        public DateTime UploadDate { get; set; }
+        editingDoc = new TbUpload
+        {
+            UploadId = doc.UploadId,
+            MenuId = doc.MenuId,
+            Creator = doc.Creator,
+            FileName = doc.FileName,
+            FileDir = doc.FileDir,
+            Size = doc.Size,
+            Type = doc.Type
+        };
+        showEditModal = true;
+    }
 
-        public string FileSizeFormatted => $"{Math.Round((double)FileSizeBytes / 1024 / 1024, 2)} MB";
+    private async Task HandleSaveEditDoc()
+    {
+        if (editingDoc == null) return;
+        isSubmitting = true;
+        var success = await ApiService.UpdateDocumentAsync(editingDoc.UploadId, editingDoc);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showEditModal = false;
+            alertType = "success";
+            alertMessage = $"Dokumen #{editingDoc.UploadId} berhasil diperbarui!";
+            await LoadDataAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = "Gagal memperbarui data dokumen.";
+        }
+    }
+
+    private void OpenViewModal(DocumentDto doc)
+    {
+        viewingDoc = doc;
+        showViewModal = true;
+    }
+
+    private void OpenDeleteConfirm(DocumentDto doc)
+    {
+        deletingDoc = doc;
+        showDeleteModal = true;
+    }
+
+    private async Task ConfirmDeleteDoc()
+    {
+        if (deletingDoc == null) return;
+        isSubmitting = true;
+        var success = await ApiService.DeleteDocumentAsync(deletingDoc.UploadId);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showDeleteModal = false;
+            alertType = "success";
+            alertMessage = $"Dokumen #{deletingDoc.UploadId} '{deletingDoc.FileName}' berhasil dihapus!";
+            await LoadDataAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = "Gagal menghapus dokumen.";
+        }
     }
 }

@@ -1,0 +1,220 @@
+@page "/cip/panduan"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa fa-book text-danger me-2"></i>Panduan CIP
+            </h4>
+            <p class="text-muted small mb-0">Buku pedoman, petunjuk teknis, dan metodologi Continuous Improvement Program</p>
+        </div>
+        @if (isAdmin)
+        {
+            <button class="btn btn-danger btn-sm rounded-pill px-4 fw-semibold shadow-sm" @onclick="OpenAddModal">
+                <i class="fa fa-plus me-1"></i> Tambah Panduan
+            </button>
+        }
+    </div>
+
+    <!-- Search Bar -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-light p-2">
+        <div class="input-group">
+            <span class="input-group-text bg-transparent border-0 text-muted"><i class="fa fa-search"></i></span>
+            <input type="text" class="form-control bg-transparent border-0" placeholder="Cari judul atau kategori panduan..." @bind="searchQuery" @bind:event="oninput" />
+        </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-secondary">
+                            <th class="ps-4 py-3" style="width: 50px;">No</th>
+                            <th class="py-3">Judul Panduan</th>
+                            <th class="py-3">Kategori</th>
+                            <th class="py-3 text-center">Versi</th>
+                            <th class="py-3">Tanggal Terbit</th>
+                            <th class="text-center pe-4 py-3" style="min-width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredList.Any())
+                        {
+                            int no = 1;
+                            @foreach (var item in FilteredList)
+                            {
+                                <tr>
+                                    <td class="ps-4 small text-muted">@(no++)</td>
+                                    <td class="fw-semibold text-dark">@item.Judul</td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary">@item.Kategori</span></td>
+                                    <td class="text-center"><span class="badge bg-light text-dark border">v@item.Versi</span></td>
+                                    <td class="small text-muted">@item.TanggalTerbit.ToString("dd MMM yyyy")</td>
+                                    <!-- Aksi: User (View & Unduh), Admin (Semua) -->
+                                    <td class="text-center pe-4">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <button class="btn btn-icon btn-soft-primary" title="Lihat Panduan" @onclick="() => ViewPdf()">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                            <a href="document/Template_Risalah_2026.pdf" download target="_blank" class="btn btn-icon btn-soft-info" title="Unduh Berkas">
+                                                <i class="fa fa-download"></i>
+                                            </a>
+
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" title="Edit Panduan" @onclick="() => EditItem(item)">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-soft-danger" title="Hapus Panduan" @onclick="() => DeleteItem(item.Id)">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-4 text-muted">Data tidak ditemukan.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Form (Admin Only) -->
+@if (isModalOpen && isAdmin)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pt-4 px-4 pb-0">
+                    <h5 class="modal-title fw-bold">@(currentItem.Id == 0 ? "Tambah" : "Edit") Panduan</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Judul Panduan *</label>
+                        <input type="text" class="form-control" @bind="currentItem.Judul" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Kategori</label>
+                        <input type="text" class="form-control" @bind="currentItem.Kategori" />
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Versi</label>
+                            <input type="text" class="form-control" @bind="currentItem.Versi" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Tanggal Terbit</label>
+                            <input type="date" class="form-control" @bind="currentItem.TanggalTerbit" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <button class="btn btn-light rounded-pill px-4" @onclick="CloseModal">Batal</button>
+                        <button class="btn btn-danger rounded-pill px-4 fw-semibold" @onclick="SaveItem">Simpan Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s ease;
+        font-size: 0.82rem;
+    }
+    .btn-icon:hover { transform: translateY(-2px); }
+    .btn-soft-primary { background-color: #e0f2fe; color: #0284c7; }
+    .btn-soft-primary:hover { background-color: #0284c7; color: #ffffff; }
+    .btn-soft-info { background-color: #ecfdf5; color: #059669; }
+    .btn-soft-info:hover { background-color: #059669; color: #ffffff; }
+    .btn-soft-warning { background-color: #fef3c7; color: #d97706; }
+    .btn-soft-warning:hover { background-color: #d97706; color: #ffffff; }
+    .btn-soft-danger { background-color: #fee2e2; color: #dc2626; }
+    .btn-soft-danger:hover { background-color: #dc2626; color: #ffffff; }
+</style>
+
+@code {
+    public class PanduanModel
+    {
+        public int Id { get; set; }
+        public string Judul { get; set; } = "";
+        public string Kategori { get; set; } = "";
+        public string Versi { get; set; } = "1.0";
+        public DateTime TanggalTerbit { get; set; } = DateTime.Now;
+    }
+
+    private List<PanduanModel> items = new()
+    {
+        new PanduanModel { Id = 1, Judul = "Pedoman Penulisan Risalah CIP 2026", Kategori = "Metodologi", Versi = "2.0", TanggalTerbit = new DateTime(2026, 1, 15) },
+        new PanduanModel { Id = 2, Judul = "Panduan Registrasi Gugus PCP & FT-PCP", Kategori = "Administrasi", Versi = "1.1", TanggalTerbit = new DateTime(2025, 11, 10) },
+        new PanduanModel { Id = 3, Judul = "Petunjuk Teknis Evaluasi & Penilaian CIP", Kategori = "Penilaian", Versi = "3.0", TanggalTerbit = new DateTime(2026, 2, 1) }
+    };
+
+    private string searchQuery = "";
+    private bool isModalOpen = false;
+    private bool isAdmin = false;
+    private PanduanModel currentItem = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+            isAdmin = userRole?.Equals("Administrator", StringComparison.OrdinalIgnoreCase) == true ||
+                      userRole?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<PanduanModel> FilteredList =>
+        string.IsNullOrWhiteSpace(searchQuery)
+        ? items
+        : items.Where(x => x.Judul.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                           x.Kategori.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private void ViewPdf()
+    {
+        Navigation.NavigateTo("document/Template_Risalah_2026.pdf");
+    }
+
+    private void OpenAddModal() { currentItem = new PanduanModel { TanggalTerbit = DateTime.Now }; isModalOpen = true; }
+    private void EditItem(PanduanModel item) { currentItem = new PanduanModel { Id = item.Id, Judul = item.Judul, Kategori = item.Kategori, Versi = item.Versi, TanggalTerbit = item.TanggalTerbit }; isModalOpen = true; }
+    private void CloseModal() => isModalOpen = false;
+
+    private void SaveItem()
+    {
+        if (currentItem.Id == 0)
+        {
+            currentItem.Id = items.Any() ? items.Max(x => x.Id) + 1 : 1;
+            items.Add(currentItem);
+        }
+        else
+        {
+            var index = items.FindIndex(x => x.Id == currentItem.Id);
+            if (index != -1) items[index] = currentItem;
+        }
+        isModalOpen = false;
+    }
+
+    private void DeleteItem(int id) => items.RemoveAll(x => x.Id == id);
+}

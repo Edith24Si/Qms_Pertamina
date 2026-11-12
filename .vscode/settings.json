@@ -1,0 +1,7 @@
+{
+  "dotnet.defaultSolution": "Qms_Pertamina.sln",
+  "files.exclude": {
+    "**/bin": true,
+    "**/obj": true
+  }
+}

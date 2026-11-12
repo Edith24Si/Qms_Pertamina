@@ -1,0 +1,220 @@
+@page "/cip/calendar"
+@inject IJSRuntime JSRuntime
+
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="fw-bold text-danger mb-0"><i class="fa fa-calendar-alt me-2"></i>Calender of Event CIP</h3>
+        @if (isAdmin)
+        {
+            <button class="btn btn-danger btn-sm rounded-pill px-3" @onclick="OpenAddModal">
+                <i class="fa fa-plus me-1"></i> Tambah Agenda
+            </button>
+        }
+    </div>
+
+    <div class="mb-3">
+        <input type="text" class="form-control" placeholder="Cari nama agenda..." @bind="searchQuery" @bind:event="oninput" />
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No</th>
+                            <th>Nama Agenda</th>
+                            <th>Lokasi</th>
+                            <th>Tanggal Mulai</th>
+                            <th>Tanggal Selesai</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredList.Any())
+                        {
+                            int no = 1;
+                            @foreach (var item in FilteredList)
+                            {
+                                <tr>
+                                    <td>@(no++)</td>
+                                    <td class="fw-semibold">@item.NamaAgenda</td>
+                                    <td>@item.Lokasi</td>
+                                    <td>@item.TglMulai.ToString("dd MMM yyyy")</td>
+                                    <td>@item.TglSelesai.ToString("dd MMM yyyy")</td>
+                                    <td class="text-center">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <button class="btn btn-icon btn-soft-primary" @onclick="() => ViewItem(item)" title="Lihat Agenda">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" @onclick="() => EditItem(item)" title="Edit">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-soft-danger" @onclick="() => DeleteItem(item.Id)" title="Hapus">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="6" class="text-center py-3 text-muted">Data tidak ditemukan.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isModalOpen && isAdmin)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">@(currentItem.Id == 0 ? "Tambah" : "Edit") Agenda</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nama Agenda</label>
+                        <input type="text" class="form-control" @bind="currentItem.NamaAgenda" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Lokasi</label>
+                        <input type="text" class="form-control" @bind="currentItem.Lokasi" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Tanggal Mulai</label>
+                            <input type="date" class="form-control" @bind="currentItem.TglMulai" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Tanggal Selesai</label>
+                            <input type="date" class="form-control" @bind="currentItem.TglSelesai" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Batal</button>
+                    <button class="btn btn-danger" @onclick="SaveItem">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (isViewModalOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 rounded-4">
+                <div class="modal-header bg-primary text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold fs-6">Detail Agenda CIP</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseViewModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <h6 class="fw-bold text-dark mb-1">@currentItem.NamaAgenda</h6>
+                    <p class="text-muted small mb-3"><i class="fa fa-map-marker text-danger me-1"></i> @currentItem.Lokasi</p>
+                    <div class="p-3 bg-light rounded-3 mb-2 small">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-muted">Tanggal Mulai:</span>
+                            <span class="fw-bold">@currentItem.TglMulai.ToString("dd MMMM yyyy")</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">Tanggal Selesai:</span>
+                            <span class="fw-bold">@currentItem.TglSelesai.ToString("dd MMMM yyyy")</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button class="btn btn-light rounded-pill px-4" @onclick="CloseViewModal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public class CalendarModel
+    {
+        public int Id { get; set; }
+        public string NamaAgenda { get; set; } = "";
+        public string Lokasi { get; set; } = "";
+        public DateTime TglMulai { get; set; } = DateTime.Now;
+        public DateTime TglSelesai { get; set; } = DateTime.Now;
+    }
+
+    private List<CalendarModel> items = new()
+    {
+        new CalendarModel { Id = 1, NamaAgenda = "Sosialisasi & Kick-off CIP 2026", Lokasi = "Auditorium RU II Dumai", TglMulai = new DateTime(2026, 1, 10), TglSelesai = new DateTime(2026, 1, 10) },
+        new CalendarModel { Id = 2, NamaAgenda = "Batas Akhir Registrasi Gugus", Lokasi = "Portal QMS Online", TglMulai = new DateTime(2026, 3, 31), TglSelesai = new DateTime(2026, 3, 31) },
+        new CalendarModel { Id = 3, NamaAgenda = "Konvensi Mutu CIP Tingkat RU II", Lokasi = "Gedung Sasana Pratama", TglMulai = new DateTime(2026, 8, 18), TglSelesai = new DateTime(2026, 8, 20) }
+    };
+
+    private bool isAdmin = false;
+    private string userRole = "User";
+    private string searchQuery = "";
+    private bool isModalOpen = false;
+    private bool isViewModalOpen = false;
+    private CalendarModel currentItem = new();
+
+    private void ViewItem(CalendarModel item)
+    {
+        currentItem = new CalendarModel
+        {
+            Id = item.Id,
+            NamaAgenda = item.NamaAgenda,
+            Lokasi = item.Lokasi,
+            TglMulai = item.TglMulai,
+            TglSelesai = item.TglSelesai
+        };
+        isViewModalOpen = true;
+    }
+
+    private void CloseViewModal() => isViewModalOpen = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole") ?? "User";
+            isAdmin = userRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase) ||
+                      userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<CalendarModel> FilteredList =>
+        string.IsNullOrWhiteSpace(searchQuery)
+        ? items
+        : items.Where(x => x.NamaAgenda.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                           x.Lokasi.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private void OpenAddModal() { currentItem = new CalendarModel { TglMulai = DateTime.Now, TglSelesai = DateTime.Now }; isModalOpen = true; }
+    private void EditItem(CalendarModel item) { currentItem = new CalendarModel { Id = item.Id, NamaAgenda = item.NamaAgenda, Lokasi = item.Lokasi, TglMulai = item.TglMulai, TglSelesai = item.TglSelesai }; isModalOpen = true; }
+    private void CloseModal() => isModalOpen = false;
+
+    private void SaveItem()
+    {
+        if (currentItem.Id == 0)
+        {
+            currentItem.Id = items.Any() ? items.Max(x => x.Id) + 1 : 1;
+            items.Add(currentItem);
+        }
+        else
+        {
+            var index = items.FindIndex(x => x.Id == currentItem.Id);
+            if (index != -1) items[index] = currentItem;
+        }
+        isModalOpen = false;
+    }
+
+    private void DeleteItem(int id) => items.RemoveAll(x => x.Id == id);
+}

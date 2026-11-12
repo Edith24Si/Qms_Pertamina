@@ -1,5 +1,387 @@
-﻿<h3>Login</h3>
+@page "/"
+@page "/login"
+@layout AuthLayout
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject QmsApiService ApiService
+
+<div class="login-container d-flex align-items-center justify-content-center min-vh-100 position-relative py-5 overflow-hidden"
+     style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #b91c1c 100%);">
+    
+    <div class="container position-relative" style="z-index: 2;">
+        <div class="row justify-content-center">
+            <div class="col-md-9 col-lg-7 col-xl-6">
+                
+                <div class="card border-0 shadow-lg rounded-4 overflow-hidden bg-white">
+                    
+                    <!-- Header Kartu -->
+                    <div class="card-header bg-white text-center pt-4 pb-2 border-0">
+                        <img src="assets/img/logo.jpg" alt="Logo Pertamina" class="img-fluid mb-2" style="max-height: 52px;" 
+                             onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'180\' height=\'40\'><text x=\'0\' y=\'28\' font-family=\'Segoe UI, Arial\' font-weight=\'800\' font-size=\'20\' fill=\'%23ed1c24\'>PERTAMINA</text></svg>';" />
+                        <h5 class="fw-bold text-dark mb-0">Quality Management System</h5>
+                        <p class="text-muted small mb-0">Subholding Downstream — Refinery Unit II Dumai</p>
+                    </div>
+
+                    <!-- Nav Tabs: Masuk vs Registrasi Pegawai -->
+                    <div class="px-4 pt-2">
+                        <div class="nav nav-pills nav-fill bg-light p-1 rounded-pill" role="tablist">
+                            <button class="nav-link rounded-pill py-2 small fw-semibold @(activeTab == "login" ? "active bg-danger text-white shadow-sm" : "text-muted")"
+                                    type="button" @onclick='() => SetTab("login")'>
+                                Masuk Portal
+                            </button>
+                            <button class="nav-link rounded-pill py-2 small fw-semibold @(activeTab == "register" ? "active bg-danger text-white shadow-sm" : "text-muted")"
+                                    type="button" @onclick='() => SetTab("register")'>
+                                Registrasi Pegawai
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="card-body px-4 px-sm-5 py-4">
+
+                        <!-- Alert Pesan Sukses / Error -->
+                        @if (!string.IsNullOrEmpty(alertMessage))
+                        {
+                            <div class="alert @(alertType == "success" ? "alert-success" : "alert-danger") border-0 rounded-3 small py-2 px-3 d-flex align-items-center justify-content-between mb-3 shadow-sm">
+                                <span>@alertMessage</span>
+                                <button type="button" class="btn-close small" @onclick="() => alertMessage = string.Empty"></button>
+                            </div>
+                        }
+
+                        @if (activeTab == "login")
+                        {
+                            <!-- FORM LOGIN -->
+                            <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                                <DataAnnotationsValidator />
+
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-secondary">NIP / Username / Gmail</label>
+                                    <input type="text" class="form-control rounded-3 py-2 bg-light border-0" 
+                                           placeholder="Contoh: 748123 atau nama@gmail.com" @bind="loginModel.Username" required />
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label class="form-label small fw-bold text-secondary mb-0">Kata Sandi</label>
+                                        <span class="small text-danger" style="cursor: pointer;" @onclick='() => alertMessage = "Silakan hubungi Administrator IT RU II Dumai jika lupa kata sandi."'>Lupa Password?</span>
+                                    </div>
+                                    <input type="password" class="form-control rounded-3 py-2 bg-light border-0" 
+                                           placeholder="••••••••" @bind="loginModel.Password" required />
+                                </div>
+
+                                <div class="form-check mb-4">
+                                    <input class="form-check-input" type="checkbox" id="rememberMe" @bind="loginModel.RememberMe">
+                                    <label class="form-check-label small text-muted" for="rememberMe">
+                                        Ingat sesi saya di perangkat ini
+                                    </label>
+                                </div>
+
+                                <button type="submit" class="btn btn-danger w-100 rounded-pill py-2 fw-bold shadow-sm" disabled="@isLoading">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <span>Memverifikasi...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Masuk ke Portal QMS</span>
+                                    }
+                                </button>
+                            </EditForm>
+                        }
+                        else
+                        {
+                            <!-- FORM REGISTRASI KHUSUS PEGAWAI (WAJIB GMAIL) -->
+                            <div class="mb-3 pb-2 border-bottom">
+                                <div class="badge bg-danger-subtle text-danger small px-2 py-1 mb-1">Khusus Pekerja / Pegawai</div>
+                                <p class="small text-muted mb-0">Pendaftaran akun pegawai resmi RU II Dumai wajib menggunakan akun <strong>Gmail aktif</strong>.</p>
+                            </div>
+
+                            <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+                                <DataAnnotationsValidator />
+
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">No. Pekerja (NIP) *</label>
+                                        <input type="number" class="form-control rounded-3 py-2 bg-light border-0 font-monospace" 
+                                               placeholder="Contoh: 748123" @bind="registerModel.NoPeg" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Nama Lengkap *</label>
+                                        <input type="text" class="form-control rounded-3 py-2 bg-light border-0" 
+                                               placeholder="Nama lengkap & gelar" @bind="registerModel.FullName" required />
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label small fw-bold text-secondary">
+                                        Akun Gmail Resmi * <span class="text-danger fw-normal">(Wajib @@gmail.com)</span>
+                                    </label>
+                                    <input type="email" class="form-control rounded-3 py-2 bg-light border-0" 
+                                           placeholder="nama.anda@gmail.com" @bind="registerModel.Email" required />
+                                </div>
+
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Jabatan</label>
+                                        <input type="text" class="form-control rounded-3 py-2 bg-light border-0" 
+                                               placeholder="Contoh: Section Head QA" @bind="registerModel.Jabatan" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Fungsi / Department</label>
+                                        <input type="text" class="form-control rounded-3 py-2 bg-light border-0" 
+                                               placeholder="Contoh: Quality Management" @bind="registerModel.Fungsi" />
+                                    </div>
+                                </div>
+
+                                <div class="mb-2">
+                                    <label class="form-label small fw-bold text-secondary">No. Handphone / WhatsApp</label>
+                                    <input type="text" class="form-control rounded-3 py-2 bg-light border-0" 
+                                           placeholder="0812xxxxxxxx" @bind="registerModel.Phone" />
+                                </div>
+
+                                <div class="row g-2 mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Kata Sandi *</label>
+                                        <input type="password" class="form-control rounded-3 py-2 bg-light border-0" 
+                                               placeholder="Minimal 4 karakter" @bind="registerModel.Password" required />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label small fw-bold text-secondary">Ulangi Kata Sandi *</label>
+                                        <input type="password" class="form-control rounded-3 py-2 bg-light border-0" 
+                                               placeholder="Konfirmasi sandi" @bind="confirmPassword" required />
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-danger w-100 rounded-pill py-2 fw-bold shadow-sm" disabled="@isLoading">
+                                    @if (isLoading)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                        <span>Mendaftarkan Akun Pegawai...</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Daftar Sebagai Pegawai</span>
+                                    }
+                                </button>
+                            </EditForm>
+                        }
+
+                    </div>
+
+                    <div class="card-footer bg-light text-center py-3 border-0">
+                        <span class="text-muted small" style="font-size: 0.78rem;">
+                            &copy; 2026 PT Pertamina Patra Niaga. All Rights Reserved.
+                        </span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
 
 @code {
+    private string activeTab = "login";
+    private LoginModel loginModel = new LoginModel();
+    private RegisterFormModel registerModel = new RegisterFormModel();
+    private string confirmPassword = string.Empty;
 
+    private bool isLoading = false;
+    private string alertMessage = string.Empty;
+    private string alertType = "danger";
+
+    private const string ADMIN_USERNAME = "adminqms"; 
+    private const string ADMIN_PASSWORD = "admin"; 
+    private const string PEGAWAI_DEFAULT_PASSWORD = "user123";
+
+    private void SetTab(string tab)
+    {
+        activeTab = tab;
+        alertMessage = string.Empty;
+    }
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        alertMessage = string.Empty;
+        await Task.Delay(200);
+
+        string usernameInput = loginModel.Username.Trim();
+        string passwordInput = loginModel.Password.Trim();
+
+        // 1. CEK KHUSUS ADMINISTRATOR
+        if (usernameInput.Equals(ADMIN_USERNAME, StringComparison.OrdinalIgnoreCase) && passwordInput == ADMIN_PASSWORD)
+        {
+            const string adminEmail = "admin.qms@pertamina.com";
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "isLoggedIn", "true");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userRole", "Administrator");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "realRole", "Administrator");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userName", "Administrator QMS");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userEmail", adminEmail);
+
+            // Isolasi foto profil admin
+            var adminPhoto = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"userPhoto_{adminEmail}");
+            if (!string.IsNullOrEmpty(adminPhoto))
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userPhoto", adminPhoto);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userPhoto");
+            }
+
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
+
+        // 2. CEK VIA API LOGIN (Mendukung akun Pegawai hasil registrasi via Gmail atau NIP)
+        var apiResult = await ApiService.LoginAsync(usernameInput, passwordInput);
+        if (apiResult.success)
+        {
+            var userEmail = (apiResult.email ?? "").Trim().ToLower();
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "isLoggedIn", "true");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userRole", apiResult.role);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "realRole", apiResult.role);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userName", apiResult.fullName);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userEmail", userEmail);
+
+            // Isolasi foto profil spesifik per email pegawai
+            if (!string.IsNullOrEmpty(apiResult.photoUrl))
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", $"userPhoto_{userEmail}", apiResult.photoUrl);
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userPhoto", apiResult.photoUrl);
+            }
+            else
+            {
+                var localSpecificPhoto = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"userPhoto_{userEmail}");
+                if (!string.IsNullOrEmpty(localSpecificPhoto))
+                {
+                    await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userPhoto", localSpecificPhoto);
+                }
+                else
+                {
+                    await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userPhoto");
+                }
+            }
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
+
+        // 3. FALLBACK KHUSUS PEGAWAI BIASA (Testing cepat dengan password default 'user123')
+        if (passwordInput == PEGAWAI_DEFAULT_PASSWORD)
+        {
+            var userEmail = (usernameInput.Contains("@") ? usernameInput : $"{usernameInput.ToLower()}@gmail.com").Trim().ToLower();
+            var displayName = string.IsNullOrWhiteSpace(usernameInput) ? "Pegawai Mutu" : usernameInput;
+
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "isLoggedIn", "true");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userRole", "User");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "realRole", "User");
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userName", displayName);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userEmail", userEmail);
+
+            // Isolasi foto profil spesifik per email
+            var specificPhoto = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"userPhoto_{userEmail}");
+            if (!string.IsNullOrEmpty(specificPhoto))
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userPhoto", specificPhoto);
+            }
+            else
+            {
+                await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userPhoto");
+            }
+
+            Navigation.NavigateTo("/dashboard");
+            return;
+        }
+
+        // 4. JIKA SALAH
+        alertType = "danger";
+        alertMessage = "NIP, Username, Gmail atau Kata Sandi yang dimasukkan salah!";
+        isLoading = false;
+    }
+
+    private async Task HandleRegister()
+    {
+        alertMessage = string.Empty;
+
+        // Validasi Nomor Pekerja
+        if (registerModel.NoPeg <= 0)
+        {
+            alertType = "danger";
+            alertMessage = "Nomor Pekerja (NIP) wajib diisi angka dengan benar.";
+            return;
+        }
+
+        // Validasi Email Gmail
+        var email = (registerModel.Email ?? "").Trim().ToLower();
+        if (!email.EndsWith("@gmail.com", StringComparison.OrdinalIgnoreCase))
+        {
+            alertType = "danger";
+            alertMessage = "Pendaftaran akun pegawai wajib menggunakan alamat Gmail yang aktif (@gmail.com).";
+            return;
+        }
+
+        // Validasi Password
+        if (string.IsNullOrWhiteSpace(registerModel.Password) || registerModel.Password.Length < 4)
+        {
+            alertType = "danger";
+            alertMessage = "Kata sandi minimal 4 karakter.";
+            return;
+        }
+
+        if (registerModel.Password != confirmPassword)
+        {
+            alertType = "danger";
+            alertMessage = "Konfirmasi kata sandi tidak cocok.";
+            return;
+        }
+
+        isLoading = true;
+
+        var (success, msg, user) = await ApiService.RegisterAsync(new
+        {
+            FullName = registerModel.FullName,
+            NoPeg = registerModel.NoPeg,
+            Email = email,
+            Jabatan = registerModel.Jabatan,
+            Fungsi = registerModel.Fungsi,
+            Phone = registerModel.Phone,
+            Password = registerModel.Password,
+            PhotoUrl = ""
+        });
+
+        isLoading = false;
+
+        if (success)
+        {
+            alertType = "success";
+            alertMessage = "Registrasi pegawai berhasil! Silakan login menggunakan akun Gmail atau NIP Anda.";
+            loginModel.Username = email;
+            loginModel.Password = registerModel.Password;
+            activeTab = "login";
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = msg;
+        }
+    }
+
+    public class LoginModel
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public bool RememberMe { get; set; } = true;
+    }
+
+    public class RegisterFormModel
+    {
+        public int NoPeg { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? Jabatan { get; set; }
+        public string? Fungsi { get; set; }
+        public string? Phone { get; set; }
+        public string Password { get; set; } = string.Empty;
+    }
 }

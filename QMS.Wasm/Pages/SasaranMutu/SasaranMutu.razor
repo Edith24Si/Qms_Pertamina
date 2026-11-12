@@ -1,0 +1,559 @@
+@page "/sasaran-mutu"
+@page "/sasaranmutu"
+@inject ISasaranMutuService SasaranMutuService
+@inject IJSRuntime JSRuntime
+@using QMS.Core.Models
+@using QMS.Wasm.Services
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <!-- Header -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="dashboard" class="text-decoration-none text-danger">Beranda</a></li>
+                    <li class="breadcrumb-item active">Sasaran Mutu</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <i class="fa fa-bullseye text-danger"></i>
+                <span>Sasaran Mutu &amp; Gugus Mutu Quality</span>
+            </h4>
+            <p class="text-muted small mb-0">Monitoring Key Performance Indicator (KPI) serta inovasi Gugus Mutu RU II Dumai.</p>
+        </div>
+
+        <!-- Tombol Tambah: HANYA MUNCUL JIKA ADMIN -->
+        @if (isAdmin)
+        {
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-danger rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" @onclick="OpenGugusModalForCreate">
+                    <i class="fa fa-plus-circle"></i>
+                    <span>Tambah Gugus</span>
+                </button>
+                <button class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" @onclick="OpenModalForCreate">
+                    <i class="fa fa-plus-circle"></i>
+                    <span>Tambah KPI</span>
+                </button>
+            </div>
+        }
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center align-items-center py-5">
+            <div class="spinner-border text-danger" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span class="ms-3 text-muted">Memuat data sasaran mutu...</span>
+        </div>
+    }
+    else
+    {
+        <!-- Table Section: KPI Sasaran Mutu -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa fa-chart-bar text-danger me-2"></i>Indikator Sasaran Mutu (KPI)</h6>
+                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 fw-bold">
+                    Total: @(kpiList?.Count ?? 0) Indikator
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light border-bottom">
+                            <tr class="small text-uppercase text-muted">
+                                <th class="ps-4 py-3">#</th>
+                                <th>Indikator</th>
+                                <th>Department</th>
+                                <th>Penanggung Jawab</th>
+                                <th class="text-center">Target</th>
+                                <th class="text-center">Capaian</th>
+                                <th style="width: 18%;">Progress</th>
+                                <th class="text-center pe-4" style="width: 15%;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            @if (kpiList == null || !kpiList.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center py-4 text-muted">Belum ada data KPI Sasaran Mutu.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int index = 1;
+                                @foreach (var kpi in kpiList)
+                                {
+                                    double percentage = kpi.Target > 0 ? Math.Min((kpi.Capaian / kpi.Target) * 100, 100) : 0;
+                                    string progressColor = percentage >= 100 ? "bg-success" : (percentage >= 75 ? "bg-info" : "bg-warning");
+
+                                    <tr>
+                                        <td class="ps-4 fw-semibold text-muted">@(index++)</td>
+                                        <td class="fw-semibold text-dark">@kpi.Indikator</td>
+                                        <td><span class="badge bg-light text-dark border px-2 py-1">@kpi.Department</span></td>
+                                        <td>@kpi.PenanggungJawab</td>
+                                        <td class="text-center font-monospace">@kpi.Target @kpi.Satuan</td>
+                                        <td class="text-center fw-bold text-danger font-monospace">@kpi.Capaian @kpi.Satuan</td>
+                                        <td>
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="progress flex-grow-1" style="height: 8px;">
+                                                    <div class="progress-bar @progressColor" role="progressbar" style="width: @percentage%"></div>
+                                                </div>
+                                                <small class="text-muted fw-bold font-monospace">@Math.Round(percentage, 1)%</small>
+                                            </div>
+                                        </td>
+                                        <td class="text-center pe-4">
+                                            <div class="d-inline-flex align-items-center gap-1">
+                                                <!-- View Icon -->
+                                                <button class="btn btn-icon btn-soft-primary" title="Lihat Detail KPI" @onclick="() => ViewKpi(kpi)">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+
+                                                @if (isAdmin)
+                                                {
+                                                    <!-- Edit Icon -->
+                                                    <button class="btn btn-icon btn-soft-warning" title="Edit KPI" @onclick="() => OpenModalForEdit(kpi)">
+                                                        <i class="fa fa-pencil fa-pen"></i>
+                                                    </button>
+                                                    <!-- Hapus Icon -->
+                                                    <button class="btn btn-icon btn-soft-danger" title="Hapus KPI" @onclick="() => DeleteKpi(kpi.Id)">
+                                                        <i class="fa fa-trash fa-trash-alt"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Section: Gugus Quality -->
+        <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
+            <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+                <h6 class="fw-bold text-dark mb-0"><i class="fa fa-users-cog text-danger me-2"></i>Daftar Gugus Quality (QCC / CIP / SS)</h6>
+                <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 fw-bold">
+                    Total: @(gugusList?.Count ?? 0) Gugus
+                </span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light border-bottom">
+                            <tr class="small text-uppercase text-muted">
+                                <th class="ps-4 py-3">#</th>
+                                <th>Nama Gugus</th>
+                                <th>Kategori</th>
+                                <th>Judul / Tema Improvement</th>
+                                <th>Fasilitator</th>
+                                <th>Ketua Tim</th>
+                                <th class="text-center pe-4" style="width: 15%;">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="small">
+                            @if (gugusList == null || !gugusList.Any())
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center py-4 text-muted">Belum ada data Gugus Quality.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                int gIndex = 1;
+                                @foreach (var gugus in gugusList)
+                                {
+                                    <tr>
+                                        <td class="ps-4 fw-semibold text-muted">@(gIndex++)</td>
+                                        <td class="fw-bold text-danger">@gugus.NamaGugus</td>
+                                        <td><span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2 py-1">@gugus.Kategori</span></td>
+                                        <td class="fw-semibold text-dark">@gugus.Judul</td>
+                                        <td>@gugus.Fasilitator</td>
+                                        <td>@gugus.Ketua</td>
+                                        <td class="text-center pe-4">
+                                            <div class="d-inline-flex align-items-center gap-1">
+                                                <!-- View Icon -->
+                                                <button class="btn btn-icon btn-soft-primary" title="Lihat Detail Gugus" @onclick="() => ViewGugus(gugus)">
+                                                    <i class="fa fa-eye"></i>
+                                                </button>
+
+                                                @if (isAdmin)
+                                                {
+                                                    <!-- Edit Icon -->
+                                                    <button class="btn btn-icon btn-soft-warning" title="Edit Gugus" @onclick="() => OpenGugusModalForEdit(gugus)">
+                                                        <i class="fa fa-pencil fa-pen"></i>
+                                                    </button>
+                                                    <!-- Hapus Icon -->
+                                                    <button class="btn btn-icon btn-soft-danger" title="Hapus Gugus" @onclick="() => DeleteGugus(gugus.Id)">
+                                                        <i class="fa fa-trash fa-trash-alt"></i>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Modal Edit / Tambah KPI -->
+@if (showModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-danger text-white px-4 py-3 border-0">
+                    <h5 class="modal-title fw-bold">@(isEditKpi ? "Edit Indikator KPI" : "Tambah Indikator KPI")</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Indikator <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3 py-2" @bind="newKpi.Indikator" placeholder="Nama indikator KPI" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Department / Fungsi</label>
+                        <input type="text" class="form-control rounded-3 py-2" @bind="newKpi.Department" placeholder="Quality Management" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Penanggung Jawab</label>
+                        <input type="text" class="form-control rounded-3 py-2" @bind="newKpi.PenanggungJawab" placeholder="Nama PIC" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-dark">Target</label>
+                            <input type="number" class="form-control rounded-3 py-2" @bind="newKpi.Target" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold text-dark">Capaian</label>
+                            <input type="number" class="form-control rounded-3 py-2" @bind="newKpi.Capaian" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Satuan</label>
+                        <input type="text" class="form-control rounded-3 py-2" @bind="newKpi.Satuan" placeholder="%" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3 border-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 text-secondary" @onclick="CloseModal">Batal</button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" @onclick="SaveKPI">
+                        <i class="fa fa-save me-1"></i> Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Edit / Tambah Gugus -->
+@if (showGugusModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-danger text-white px-4 py-3 border-0">
+                    <h5 class="modal-title fw-bold">@(isEditGugus ? "Edit Gugus Mutu" : "Tambah Gugus Mutu")</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseGugusModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Nama Gugus <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control rounded-3 py-2" @bind="newGugus.NamaGugus" placeholder="Contoh: Bimasakti" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Kategori</label>
+                        <select class="form-select rounded-3 py-2" @bind="newGugus.Kategori">
+                            <option value="CIP">CIP (Continuous Improvement)</option>
+                            <option value="PKM">PKM (Praktik Kinerja Mutu)</option>
+                            <option value="SS">SS (Sumbang Saran)</option>
+                            <option value="QCC">QCC (Quality Control Circle)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Judul / Tema Improvement</label>
+                        <input type="text" class="form-control rounded-3 py-2" @bind="newGugus.Judul" placeholder="Judul inovasi" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Fasilitator</label>
+                        <input type="text" class="form-control rounded-3 py-2" @bind="newGugus.Fasilitator" placeholder="Nama fasilitator" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-dark">Ketua Tim</label>
+                        <input type="text" class="form-control rounded-3 py-2" @bind="newGugus.Ketua" placeholder="Nama ketua tim" />
+                    </div>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3 border-0">
+                    <button type="button" class="btn btn-light rounded-pill px-4 text-secondary" @onclick="CloseGugusModal">Batal</button>
+                    <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" @onclick="SaveGugus">
+                        <i class="fa fa-save me-1"></i> Simpan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal View Detail KPI -->
+@if (viewingKpi != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-dark text-white px-4 py-3 border-0">
+                    <h6 class="modal-title fw-bold"><i class="fa fa-chart-line text-danger me-2"></i>Detail Indikator KPI</h6>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => viewingKpi = null"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold text-dark mb-1">@viewingKpi.Indikator</h5>
+                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 mb-3">@viewingKpi.Department</span>
+                    
+                    <ul class="list-group list-group-flush small border-top pt-2">
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Penanggung Jawab:</span>
+                            <span class="fw-bold">@viewingKpi.PenanggungJawab</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Target:</span>
+                            <span class="fw-bold font-monospace">@viewingKpi.Target @viewingKpi.Satuan</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Capaian Aktual:</span>
+                            <span class="fw-bold text-danger font-monospace">@viewingKpi.Capaian @viewingKpi.Satuan</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Pencapaian:</span>
+                            <span class="fw-bold text-success font-monospace">
+                                @(viewingKpi.Target > 0 ? Math.Round((viewingKpi.Capaian / viewingKpi.Target) * 100, 1) : 0)%
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3 border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 w-100" @onclick="() => viewingKpi = null">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal View Detail Gugus -->
+@if (viewingGugus != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-dark text-white px-4 py-3 border-0">
+                    <h6 class="modal-title fw-bold"><i class="fa fa-users text-danger me-2"></i>Detail Gugus Quality</h6>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => viewingGugus = null"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <h5 class="fw-bold text-dark mb-1">@viewingGugus.NamaGugus</h5>
+                    <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 mb-3">Kategori: @viewingGugus.Kategori</span>
+
+                    <ul class="list-group list-group-flush small border-top pt-2">
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Judul / Tema:</span>
+                            <span class="fw-bold text-dark">@viewingGugus.Judul</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Fasilitator:</span>
+                            <span class="fw-semibold">@viewingGugus.Fasilitator</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Ketua Tim:</span>
+                            <span class="fw-semibold">@viewingGugus.Ketua</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3 border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 w-100" @onclick="() => viewingGugus = null">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s ease;
+        font-size: 0.82rem;
+    }
+    .btn-icon:hover {
+        transform: translateY(-2px);
+    }
+    .btn-soft-primary { background-color: #e0f2fe; color: #0284c7; }
+    .btn-soft-primary:hover { background-color: #0284c7; color: #ffffff; }
+    .btn-soft-warning { background-color: #fef3c7; color: #d97706; }
+    .btn-soft-warning:hover { background-color: #d97706; color: #ffffff; }
+    .btn-soft-danger { background-color: #fee2e2; color: #dc2626; }
+    .btn-soft-danger:hover { background-color: #dc2626; color: #ffffff; }
+</style>
+
+@code {
+    private bool isAdmin = false;
+    private bool isLoading = true;
+    private List<KpiModel>? kpiList;
+    private List<GugusMutuModel>? gugusList;
+
+    private bool showModal = false;
+    private bool isEditKpi = false;
+    private KpiModel newKpi = new();
+    private KpiModel? viewingKpi;
+
+    private bool showGugusModal = false;
+    private bool isEditGugus = false;
+    private GugusMutuModel newGugus = new();
+    private GugusMutuModel? viewingGugus;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var role = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+                isAdmin = (role == "Administrator");
+                StateHasChanged();
+            }
+            catch {}
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            kpiList = await SasaranMutuService.GetKpisAsync();
+            gugusList = await SasaranMutuService.GetGugusListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void ViewKpi(KpiModel kpi) => viewingKpi = kpi;
+    private void ViewGugus(GugusMutuModel g) => viewingGugus = g;
+
+    private void OpenModalForCreate()
+    {
+        newKpi = new KpiModel { Satuan = "%" };
+        isEditKpi = false;
+        showModal = true;
+    }
+
+    private void OpenModalForEdit(KpiModel kpi)
+    {
+        newKpi = new KpiModel
+        {
+            Id = kpi.Id,
+            Indikator = kpi.Indikator,
+            Department = kpi.Department,
+            PenanggungJawab = kpi.PenanggungJawab,
+            Target = kpi.Target,
+            Capaian = kpi.Capaian,
+            Satuan = kpi.Satuan
+        };
+        isEditKpi = true;
+        showModal = true;
+    }
+
+    private void CloseModal() => showModal = false;
+
+    private async Task SaveKPI()
+    {
+        if (!string.IsNullOrWhiteSpace(newKpi.Indikator))
+        {
+            bool success = isEditKpi
+                ? await SasaranMutuService.UpdateKpiAsync(newKpi)
+                : await SasaranMutuService.AddKpiAsync(newKpi);
+
+            if (success)
+            {
+                await LoadDataAsync();
+                showModal = false;
+            }
+        }
+    }
+
+    private async Task DeleteKpi(int id)
+    {
+        if (await SasaranMutuService.DeleteKpiAsync(id))
+        {
+            await LoadDataAsync();
+        }
+    }
+
+    private void OpenGugusModalForCreate()
+    {
+        newGugus = new GugusMutuModel { Kategori = "CIP" };
+        isEditGugus = false;
+        showGugusModal = true;
+    }
+
+    private void OpenGugusModalForEdit(GugusMutuModel gugus)
+    {
+        newGugus = new GugusMutuModel
+        {
+            Id = gugus.Id,
+            NamaGugus = gugus.NamaGugus,
+            Kategori = gugus.Kategori,
+            Judul = gugus.Judul,
+            Fasilitator = gugus.Fasilitator,
+            Ketua = gugus.Ketua
+        };
+        isEditGugus = true;
+        showGugusModal = true;
+    }
+
+    private void CloseGugusModal() => showGugusModal = false;
+
+    private async Task SaveGugus()
+    {
+        if (!string.IsNullOrWhiteSpace(newGugus.NamaGugus))
+        {
+            bool success = isEditGugus
+                ? await SasaranMutuService.UpdateGugusAsync(newGugus)
+                : await SasaranMutuService.AddGugusAsync(newGugus);
+
+            if (success)
+            {
+                await LoadDataAsync();
+                showGugusModal = false;
+            }
+        }
+    }
+
+    private async Task DeleteGugus(int id)
+    {
+        if (await SasaranMutuService.DeleteGugusAsync(id))
+        {
+            await LoadDataAsync();
+        }
+    }
+}

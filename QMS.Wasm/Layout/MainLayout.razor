@@ -1,73 +1,557 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject QMS.Services.UserState UserState
+@implements IDisposable
 
-<div class="main-wrapper">
-    <!-- 1. Header Atas (Logo & Profile) -->
-    <TopHeader />
-
-    <!-- 2. Navbar Main Menu (navbar.php) -->
-    <NavMenu />
-
-    <!-- 3. Konten Utama & Sidebar (side.php) -->
-    <div class="container">
-        <div class="content">
-            <div class="content-container">
-                <div class="row">
-                    <!-- Area Halaman Utama -->
-                    <div class="col-md-8">
-                        @Body
-                    </div>
-
-                    <!-- Sidebar Right -->
-                    <Sidebar />
-                </div>
-            </div> <!-- /.content-container -->
-        </div> <!-- /.content -->
-    </div> <!-- /.container -->
-    <!-- 4. Footer & Modal (footer.php) -->
-    <footer class="footer">
-        <div class="container">
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="footstr1">
-                        <p class="p-footstr1">
-                            <span class="fa fa-map-marker"></span>&nbsp;&nbsp;&nbsp;
-                            Head Office : Jalan Puteri Tujuh Dumai - Riau, 28813 <br>
-                            <span class="fa fa-phone"></span>&nbsp;
-                            Telp. (0765)31244 Fax. (0765)31532
-                        </p>
-                    </div>
-                    <div class="footstr2">
-                        <p class="p-footstr2">
-                            Copyright &copy; 2014 - PT. Pertamina Patra Niaga RU Dumai
-                        </p>
-                    </div>
-                    <div class="footimg">
-                        <NavLink href="">
-                            <img src="assets/img/pertamina.png" alt="Site Logo">
-                        </NavLink>
-                    </div>
+<div class="qms-portal-wrapper">
+    <!-- Header Resmi Pertamina -->
+    <header class="qms-brand-header bg-white border-bottom py-2 shadow-sm">
+        <div class="container-fluid px-4 d-flex justify-content-between align-items-center">
+            
+            <!-- Logo & Unit Info -->
+            <div class="d-flex align-items-center gap-3">
+                <a href="dashboard" class="d-flex align-items-center text-decoration-none">
+                    <img src="assets/img/logo.jpg" alt="Pertamina Patra Niaga" class="brand-logo"
+                         onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'180\' height=\'40\'><text x=\'0\' y=\'28\' font-family=\'Segoe UI, Arial\' font-weight=\'800\' font-size=\'20\' fill=\'%23ed1c24\'>PERTAMINA</text></svg>';" />
+                </a>
+                <div class="vr mx-1 d-none d-md-block text-secondary opacity-25"></div>
+                <div class="d-none d-md-block">
+                    <span class="fw-bold text-dark d-block text-uppercase" style="font-size: 0.95rem; letter-spacing: 0.5px;">PATRA NIAGA</span>
+                    <span class="text-muted small" style="font-size: 0.75rem;">Quality Management System — RU II Dumai</span>
                 </div>
             </div>
+
+            <!-- Pojok Kanan: Tombol Masuk STK & Profil Pengguna (Desain Kotak Elegan, Simpel & Modern) -->
+            <div class="d-flex align-items-center gap-2 gap-sm-3">
+                
+                <!-- TOMBOL MASUK STK DI POJOK ATAS (Desain Kotak Bersih, Cukup Button & Tulisan Tanpa Tombol Play) -->
+                <a href="https://youtu.be/ag7MoapQjAE?si=0lOGpNRP-Akrzi0A" 
+                   target="_blank" 
+                   rel="noopener noreferrer" 
+                   class="stk-btn-square text-decoration-none shadow-sm"
+                   title="Buka Sistem Tata Kerja (STK) Pertamina">
+                    <span>Masuk STK</span>
+                </a>
+
+                <!-- Dropdown Profil User & Role Status (Desain Kotak Elegan) -->
+                <div class="dropdown position-relative">
+                    <button class="user-square-card @(isMenuOpen ? "active" : "") border-0 p-0"
+                            type="button" 
+                            @onclick="ToggleUserMenu" 
+                            @onclick:stopPropagation="true">
+                        
+                        <!-- Avatar / Foto Profil (Sudut Kotak Halus) -->
+                        <div class="user-card-avatar-wrap">
+                            @if (!string.IsNullOrEmpty(userPhoto))
+                            {
+                                <img src="@userPhoto" alt="Avatar" class="user-card-avatar-img shadow-sm" />
+                            }
+                            else
+                            {
+                                <div class="user-card-avatar-placeholder">
+                                    <span class="user-card-initials">@GetUserInitials(userName)</span>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Info Nama & Role -->
+                        <div class="user-card-meta text-start d-none d-sm-block">
+                            <span class="user-card-name">@userName</span>
+                            <div class="d-flex align-items-center mt-0">
+                                @if (userRole == "Administrator")
+                                {
+                                    <span class="user-card-badge badge-admin">
+                                        Admin
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="user-card-badge badge-user">
+                                        <span class="user-status-dot"></span>
+                                        <span>User</span>
+                                    </span>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Chevron Down Modern (Berotasi saat open) -->
+                        <i class="fa fa-chevron-down user-card-chevron @(isMenuOpen ? "chevron-open" : "")"></i>
+                    </button>
+
+                    @if (isMenuOpen)
+                    {
+                        <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 mt-2 show user-profile-flyout"
+                             style="position: absolute; right: 0; top: 100%; z-index: 1050; min-width: 270px; display: block;"
+                             @onclick:stopPropagation="true">
+                            
+                            <!-- Header Profil Mini di Dropdown -->
+                            <div class="p-3 mb-1 user-flyout-header rounded-top-3">
+                                <div class="d-flex align-items-center gap-3">
+                                    @if (!string.IsNullOrEmpty(userPhoto))
+                                    {
+                                        <img src="@userPhoto" alt="Avatar" class="rounded-circle object-fit-cover border border-2 border-white shadow-sm" style="width: 42px; height: 42px;" />
+                                    }
+                                    else
+                                    {
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" 
+                                             style="width: 42px; height: 42px; background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 0.95rem;">
+                                            @GetUserInitials(userName)
+                                        </div>
+                                    }
+                                    <div class="overflow-hidden">
+                                        <span class="fw-bold text-dark d-block text-truncate" style="font-size: 0.88rem;">@userName</span>
+                                        <small class="text-muted d-block text-truncate" style="font-size: 0.74rem;">@userEmail</small>
+                                        <span class="badge @(userRole == "Administrator" ? "bg-danger-subtle text-danger" : "bg-primary-subtle text-primary") rounded-2 px-2 py-0 mt-1" style="font-size: 0.68rem;">
+                                            Role Aktif: @userRole
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="px-2 py-1">
+                                <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2 small" href="profile" @onclick="CloseMenu">
+                                    <i class="fa fa-id-card text-muted"></i> Profil Saya
+                                </a>
+
+                                @* Daftar Pengguna: HANYA MUNCUL JIKA ROLE ADMINISTRATOR *@
+                                @if (userRole == "Administrator")
+                                {
+                                    <a class="dropdown-item rounded-2 py-2 d-flex align-items-center gap-2 small" href="users" @onclick="CloseMenu">
+                                        <i class="fa fa-users text-muted"></i> Daftar Pengguna
+                                    </a>
+                                }
+                            </div>
+
+                            @* Ganti Mode Role Cepat: HANYA MUNCUL JIKA LOGIN SEBAGAI ADMINISTRATOR *@
+                            @if (realRole == "Administrator")
+                            {
+                                <div class="border-top my-1"></div>
+                                <div class="px-3 pt-2 pb-1">
+                                    <small class="text-muted fw-bold d-block" style="font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px;">Ganti Mode Role Cepat</small>
+                                </div>
+                                <div class="px-2">
+                                    <button class="dropdown-item rounded-2 small py-2 d-flex align-items-center justify-content-between" @onclick='() => SwitchRole("Administrator")'>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fa fa-user-shield text-danger"></i>
+                                            <span>Administrator</span>
+                                        </div>
+                                        @if (userRole == "Administrator")
+                                        {
+                                            <i class="fa fa-check text-success"></i>
+                                        }
+                                    </button>
+                                    <button class="dropdown-item rounded-2 small py-2 d-flex align-items-center justify-content-between" @onclick='() => SwitchRole("User")'>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fa fa-user text-primary"></i>
+                                            <span>User (Pegawai Biasa)</span>
+                                        </div>
+                                        @if (userRole == "User")
+                                        {
+                                            <i class="fa fa-check text-success"></i>
+                                        }
+                                    </button>
+                                </div>
+                            }
+
+                            <div class="border-top my-1"></div>
+                            <div class="px-2 pb-1">
+                                <button class="dropdown-item rounded-2 small py-2 text-danger d-flex align-items-center gap-2" @onclick="HandleLogout">
+                                    <i class="fa fa-sign-out-alt"></i> Keluar (Logout)
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
         </div>
-        <div class="str2"></div>
-    </footer>
+    </header>
 
-    <!-- Modal About -->
-    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
-                    <h4 class="modal-title" id="myModalLabel">About</h4>
-                </div>
-                <div class="modal-body">
-                    <p>Selamat datang di website Quality Management System V.2.0</p>
-                    <p>Semoga website ini dapat sedikit meringankan kerja anda. Mohon kritik dan saran demi kemajuan website ini. Terimakasih!</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-dismiss="modal">Close</button>
-                </div>
-            </div>
+    <!-- Navigasi Menu Sticky (Elegan, Terpusat, Tidak Terlalu Lebar) -->
+    <div class="qms-navbar-sticky shadow-sm">
+        <div class="container-fluid px-4">
+            <NavMenu />
         </div>
     </div>
+
+    <!-- Konten Utama Halaman -->
+    <main class="qms-main-content py-4" @onclick="CloseMenu">
+        @Body
+    </main>
+
+    <!-- Footer Korporat -->
+    <footer class="qms-official-footer py-4 text-white" @onclick="CloseMenu">
+        <div class="container-fluid px-4">
+            <div class="row gy-3 align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <h6 class="fw-bold mb-1 text-white">PT PERTAMINA PATRA NIAGA</h6>
+                    <p class="small mb-0 text-white-50">Subholding Downstream — Refinery Unit II Dumai, Riau</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end small text-white-50">
+                    <p class="mb-0">&copy; 2026 PT Pertamina Patra Niaga. All Rights Reserved.</p>
+                    <p class="mb-0" style="font-size: 0.75rem;">Head Office: Jl. Putri Tujuh Dumai — Riau, 28813</p>
+                </div>
+            </div>
+        </div>
+    </footer>
 </div>
+
+<style>
+    @@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    :root {
+        --pertamina-red: #ed1c24;
+        --pertamina-blue: #003865;
+        --pertamina-dark: #0f172a;
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background-color: #f8fafc;
+        color: #1e293b;
+    }
+
+    .qms-portal-wrapper {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .brand-logo {
+        height: 38px;
+        object-fit: contain;
+    }
+
+    .qms-navbar-sticky {
+        position: sticky;
+        top: 0;
+        z-index: 1030;
+        background: linear-gradient(90deg, #991b1b 0%, #dc2626 50%, #991b1b 100%);
+        border-bottom: 2px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 4px 12px rgba(185, 28, 28, 0.15);
+    }
+
+    .qms-main-content {
+        flex: 1;
+        background-color: #f8fafc;
+    }
+
+    .qms-official-footer {
+        background-color: #0f172a;
+        border-top: 4px solid #ed1c24;
+    }
+
+    /* CSS Header Kanan Elegan & Simpel (Masuk STK & Profil Pengguna - Sudut Kotak) */
+    .stk-btn-square {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 120px;
+        background: #ffffff;
+        border: 1.5px solid #dc2626;
+        border-radius: 6px; /* Sudut kotak rapi */
+        padding: 8px 20px; /* Panjang seimbang */
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #dc2626;
+        letter-spacing: 0.3px;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .stk-btn-square:hover {
+        background-color: #dc2626;
+        color: #ffffff !important;
+        border-color: #dc2626;
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+        transform: translateY(-1px);
+    }
+
+    /* Executive User Card (Desain Kotak Elegan & Dipanjangin) */
+    .user-square-card {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 210px; /* Panjang dipanjangin sedikit lagi sesuai permintaan */
+        background: #ffffff;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 6px; /* Wadah luar tetap kotak rapi */
+        padding: 6px 18px 6px 9px; /* Lebih lega dengan jarak garis kanan yang cukup */
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .user-square-card:hover, .user-square-card.active {
+        border-color: #cbd5e1 !important;
+        box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        transform: translateY(-1px);
+        background: #fafafa;
+    }
+
+    .user-card-avatar-wrap {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Profil Dibuat Bulat */
+    .user-card-avatar-img {
+        width: 36px;
+        height: 36px;
+        border-radius: 50% !important; /* Dibuat bulat */
+        object-fit: cover;
+        border: 2px solid #fee2e2;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    /* Profil Inisial Dibuat Bulat */
+    .user-card-avatar-placeholder {
+        width: 36px;
+        height: 36px;
+        border-radius: 50% !important; /* Dibuat bulat */
+        background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid #fee2e2;
+        box-shadow: 0 2px 5px rgba(220, 38, 38, 0.2);
+    }
+
+    .user-card-initials {
+        font-size: 0.82rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .user-card-name {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #0f172a;
+        line-height: 1.2;
+        max-width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: block;
+    }
+
+    .user-card-badge {
+        font-size: 0.64rem;
+        font-weight: 600;
+        border-radius: 4px; /* Sudut kotak badge */
+        padding: 1px 7px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        line-height: 1.2;
+    }
+
+    .badge-admin {
+        background: #fef2f2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
+
+    .badge-user {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border: 1px solid #bfdbfe;
+    }
+
+    .user-status-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: #2563eb;
+        display: inline-block;
+    }
+
+    .user-card-chevron {
+        font-size: 0.68rem;
+        color: #94a3b8;
+        margin-left: auto; /* Mendorong chevron ke kanan */
+        padding-left: 8px;
+        margin-right: 4px; /* Jarak aman agar tidak dekat dengan garis tepi kanan */
+        transition: transform 0.25s ease, color 0.2s ease;
+    }
+
+    .user-card-chevron.chevron-open {
+        transform: rotate(180deg);
+        color: #dc2626;
+    }
+
+    .user-profile-flyout {
+        border-radius: 8px !important; /* Sudut kotak */
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12) !important;
+        background: #ffffff;
+    }
+
+    .user-flyout-header {
+        border-radius: 7px 7px 0 0 !important;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .line-height-1 {
+        line-height: 1.1;
+    }
+</style>
+
+@code {
+    private bool isMenuOpen = false;
+    private string userName = "Pegawai Mutu";
+    private string userEmail = "pegawai@pertamina.com";
+    private string userRole = "User";
+    private string realRole = "User";
+    private string userPhoto = "";
+
+    protected override void OnInitialized()
+    {
+        UserState.OnChange += HandleUserStateChanged;
+    }
+
+    public void Dispose()
+    {
+        UserState.OnChange -= HandleUserStateChanged;
+    }
+
+    private void HandleUserStateChanged()
+    {
+        if (!string.IsNullOrEmpty(UserState.PhotoUrl))
+        {
+            userPhoto = UserState.PhotoUrl;
+        }
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var currentUri = Navigation.Uri.ToLower();
+            if (!currentUri.Contains("/login"))
+            {
+                var isLoggedIn = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
+                if (string.IsNullOrEmpty(isLoggedIn) || isLoggedIn != "true")
+                {
+                    Navigation.NavigateTo("/login", true);
+                    return;
+                }
+
+                var storedRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+                if (!string.IsNullOrEmpty(storedRole))
+                {
+                    userRole = storedRole;
+                }
+
+                var storedRealRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "realRole");
+                if (!string.IsNullOrEmpty(storedRealRole))
+                {
+                    realRole = storedRealRole;
+                }
+                else
+                {
+                    realRole = userRole;
+                }
+
+                var storedName = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userName");
+                if (!string.IsNullOrEmpty(storedName))
+                {
+                    userName = storedName;
+                }
+                else
+                {
+                    userName = userRole == "Administrator" ? "Administrator QMS" : "Pegawai Mutu";
+                }
+
+                var storedEmail = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userEmail");
+                if (!string.IsNullOrEmpty(storedEmail))
+                {
+                    userEmail = storedEmail.Trim().ToLower();
+                }
+                else
+                {
+                    userEmail = userRole == "Administrator" ? "admin.qms@pertamina.com" : "pegawai@gmail.com";
+                }
+
+                // ISOLASI FOTO PROFIL PER USER (Unik per email)
+                var specificPhoto = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"userPhoto_{userEmail}");
+                if (!string.IsNullOrEmpty(specificPhoto))
+                {
+                    userPhoto = specificPhoto;
+                    await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userPhoto", userPhoto);
+                }
+                else
+                {
+                    userPhoto = "";
+                }
+
+                UserState.SetUser(userRole, userName, userEmail, userPhoto);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private void ToggleUserMenu() => isMenuOpen = !isMenuOpen;
+    private void CloseMenu() => isMenuOpen = false;
+
+    private async Task SwitchRole(string newRole)
+    {
+        isMenuOpen = false;
+        userRole = newRole;
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userRole", newRole);
+        if (newRole == "Administrator")
+        {
+            userName = "Administrator QMS";
+            userEmail = "admin.qms@pertamina.com";
+        }
+        else
+        {
+            userName = "Pegawai Mutu";
+            userEmail = "pegawai@gmail.com";
+        }
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userName", userName);
+        await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userEmail", userEmail);
+
+        // Ambil foto spesifik untuk akun role yang dituju (Isolasi antar role)
+        var targetPhoto = await JSRuntime.InvokeAsync<string>("localStorage.getItem", $"userPhoto_{userEmail}");
+        userPhoto = targetPhoto ?? "";
+        if (!string.IsNullOrEmpty(userPhoto))
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", "userPhoto", userPhoto);
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userPhoto");
+        }
+
+        UserState.SetUser(userRole, userName, userEmail, userPhoto);
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+
+    private async Task HandleLogout()
+    {
+        isMenuOpen = false;
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "isLoggedIn");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userRole");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "realRole");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userName");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userEmail");
+        await JSRuntime.InvokeVoidAsync("localStorage.removeItem", "userPhoto");
+        Navigation.NavigateTo("/login", true);
+    }
+
+    private string GetUserInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "PM";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0].Substring(0, Math.Min(2, parts[0].Length)).ToUpper();
+        return $"{parts[0][0]}{parts[parts.Length - 1][0]}".ToUpper();
+    }
+}

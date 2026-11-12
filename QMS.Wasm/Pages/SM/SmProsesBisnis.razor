@@ -1,0 +1,240 @@
+@page "/sm/proses-bisnis"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa fa-sitemap text-danger me-2"></i>Peta Proses Bisnis
+            </h4>
+            <p class="text-muted small mb-0">Arsitektur dan rantai nilai proses bisnis operasional RU II Dumai</p>
+        </div>
+        @if (isAdmin)
+        {
+            <button class="btn btn-danger btn-sm rounded-pill px-4 fw-semibold shadow-sm" @onclick="OpenAddModal">
+                <i class="fa fa-plus me-1"></i> Tambah Peta Proses
+            </button>
+        }
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-light p-2">
+        <div class="input-group">
+            <span class="input-group-text bg-transparent border-0 text-muted"><i class="fa fa-search"></i></span>
+            <input type="text" class="form-control bg-transparent border-0" placeholder="Cari nama proses atau fungsi PJ..." @bind="searchQuery" @bind:event="oninput" />
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-secondary">
+                            <th class="ps-4 py-3" style="width: 50px;">No</th>
+                            <th class="py-3">Level / Tingkat</th>
+                            <th class="py-3">Nama Proses Bisnis</th>
+                            <th class="py-3">Fungsi Penanggung Jawab</th>
+                            <th class="py-3 text-center">Revisi</th>
+                            <th class="text-center pe-4 py-3" style="min-width: 120px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredList.Any())
+                        {
+                            int no = 1;
+                            @foreach (var item in FilteredList)
+                            {
+                                <tr>
+                                    <td class="ps-4 small text-muted">@(no++)</td>
+                                    <td><span class="badge bg-danger-subtle text-danger">@item.Level</span></td>
+                                    <td class="fw-semibold text-dark">@item.NamaProses</td>
+                                    <td>@item.FungsiPJ</td>
+                                    <td class="text-center"><span class="badge bg-light text-dark border">Rev. @item.Revisi</span></td>
+                                    <!-- Aksi: User (View), Admin (Semua) -->
+                                    <td class="text-center pe-4">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <button class="btn btn-icon btn-soft-primary" title="Lihat Peta Proses" @onclick="() => ViewItem(item)">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" title="Edit Peta Proses" @onclick="() => EditItem(item)">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-soft-danger" title="Hapus Peta Proses" @onclick="() => DeleteItem(item.Id)">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="6" class="text-center py-4 text-muted">Data proses bisnis tidak ditemukan.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isModalOpen && isAdmin)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pt-4 px-4 pb-0">
+                    <h5 class="modal-title fw-bold">@(currentItem.Id == 0 ? "Tambah" : "Edit") Peta Proses</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Nama Proses *</label>
+                        <input type="text" class="form-control" @bind="currentItem.NamaProses" />
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label small fw-bold">Level</label>
+                            <input type="text" class="form-control" @bind="currentItem.Level" placeholder="Level 0 / 1 / 2" />
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label class="form-label small fw-bold">Fungsi PJ</label>
+                            <input type="text" class="form-control" @bind="currentItem.FungsiPJ" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label small fw-bold">Revisi</label>
+                            <input type="number" class="form-control" @bind="currentItem.Revisi" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <button class="btn btn-light rounded-pill px-4" @onclick="CloseModal">Batal</button>
+                        <button class="btn btn-danger rounded-pill px-4 fw-semibold" @onclick="SaveItem">Simpan Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- View Modal -->
+@if (showViewModal && viewingItem != null)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow text-center p-4">
+                <div class="bg-danger-subtle text-danger rounded-circle p-3 d-inline-flex mx-auto mb-3">
+                    <i class="fa fa-sitemap fs-2"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-1">@viewingItem.NamaProses</h5>
+                <span class="badge bg-danger rounded-pill px-3 py-1 mb-3">@viewingItem.Level (Rev. @viewingItem.Revisi)</span>
+
+                <div class="text-start bg-light rounded-3 p-3 small mb-3">
+                    <div class="mb-2"><strong>Fungsi Penanggung Jawab:</strong> @viewingItem.FungsiPJ</div>
+                    <div class="mb-2"><strong>Unit Organisasi:</strong> PT Pertamina Patra Niaga RU II Dumai</div>
+                    <div><strong>Status Verifikasi:</strong> <span class="badge bg-success">Berlaku Aktif</span></div>
+                </div>
+
+                <div>
+                    <button class="btn btn-secondary rounded-pill px-4" @onclick="() => showViewModal = false">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s ease;
+        font-size: 0.82rem;
+    }
+    .btn-icon:hover { transform: translateY(-2px); }
+    .btn-soft-primary { background-color: #e0f2fe; color: #0284c7; }
+    .btn-soft-primary:hover { background-color: #0284c7; color: #ffffff; }
+    .btn-soft-warning { background-color: #fef3c7; color: #d97706; }
+    .btn-soft-warning:hover { background-color: #d97706; color: #ffffff; }
+    .btn-soft-danger { background-color: #fee2e2; color: #dc2626; }
+    .btn-soft-danger:hover { background-color: #dc2626; color: #ffffff; }
+</style>
+
+@code {
+    public class ProsesBisnisModel
+    {
+        public int Id { get; set; }
+        public string Level { get; set; } = "Level 1";
+        public string NamaProses { get; set; } = "";
+        public string FungsiPJ { get; set; } = "";
+        public int Revisi { get; set; } = 0;
+    }
+
+    private List<ProsesBisnisModel> items = new()
+    {
+        new ProsesBisnisModel { Id = 1, Level = "Level 0", NamaProses = "Arsitektur Proses Bisnis RU II", FungsiPJ = "System & Organization", Revisi = 2 },
+        new ProsesBisnisModel { Id = 2, Level = "Level 1", NamaProses = "Pengolahan Minyak Mentah (Crude Processing)", FungsiPJ = "Production", Revisi = 1 },
+        new ProsesBisnisModel { Id = 3, Level = "Level 2", NamaProses = "Pemeliharaan Peralatan Statis & Dinamis", FungsiPJ = "Maintenance Planning", Revisi = 0 }
+    };
+
+    private string searchQuery = "";
+    private bool isModalOpen = false;
+    private bool showViewModal = false;
+    private bool isAdmin = false;
+
+    private ProsesBisnisModel currentItem = new();
+    private ProsesBisnisModel? viewingItem;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+            isAdmin = userRole?.Equals("Administrator", StringComparison.OrdinalIgnoreCase) == true ||
+                      userRole?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<ProsesBisnisModel> FilteredList =>
+        string.IsNullOrWhiteSpace(searchQuery)
+        ? items
+        : items.Where(x => x.NamaProses.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                           x.FungsiPJ.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private void ViewItem(ProsesBisnisModel item)
+    {
+        viewingItem = item;
+        showViewModal = true;
+    }
+
+    private void OpenAddModal() { currentItem = new ProsesBisnisModel(); isModalOpen = true; }
+    private void EditItem(ProsesBisnisModel item) { currentItem = new ProsesBisnisModel { Id = item.Id, Level = item.Level, NamaProses = item.NamaProses, FungsiPJ = item.FungsiPJ, Revisi = item.Revisi }; isModalOpen = true; }
+    private void CloseModal() => isModalOpen = false;
+
+    private void SaveItem()
+    {
+        if (currentItem.Id == 0)
+        {
+            currentItem.Id = items.Any() ? items.Max(x => x.Id) + 1 : 1;
+            items.Add(currentItem);
+        }
+        else
+        {
+            var index = items.FindIndex(x => x.Id == currentItem.Id);
+            if (index != -1) items[index] = currentItem;
+        }
+        isModalOpen = false;
+    }
+
+    private void DeleteItem(int id) => items.RemoveAll(x => x.Id == id);
+}

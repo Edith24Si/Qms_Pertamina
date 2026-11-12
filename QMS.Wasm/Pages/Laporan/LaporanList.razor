@@ -1,0 +1,228 @@
+﻿@page "/laporan"
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <!-- Header Halaman -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">
+                <i class="fa fa-file-alt text-danger me-2"></i>Laporan Kinerja &amp; Rekapitulasi Mutu
+            </h4>
+            <p class="text-muted small mb-0">Cetak dan unduh rekap Laporan Gugus Improvement, Sasaran Mutu, serta Audit Sistem Manajemen.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-danger rounded-pill px-4 fw-semibold shadow-sm" @onclick="ExportExcel">
+                <i class="fa fa-file-excel me-2"></i>Ekspor Excel
+            </button>
+            <button class="btn btn-danger rounded-pill px-4 fw-semibold shadow-sm" @onclick="PrintPdf">
+                <i class="fa fa-file-pdf me-2"></i>Cetak PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Filter Periode Laporan -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        <h6 class="fw-bold mb-3 text-dark"><i class="fa fa-filter text-danger me-2"></i>Filter Periode Laporan</h6>
+        <div class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Tahun Anggaran</label>
+                <select class="form-select bg-light" @bind="selectedYear">
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-muted">Jenis Laporan</label>
+                <select class="form-select bg-light" @bind="selectedType">
+                    <option value="Gugus">Rekapitulasi Gugus Mutu (CIP/GKM/SS)</option>
+                    <option value="KPI">Rekapitulasi Sasaran Mutu (KPI)</option>
+                    <option value="Audit">Rekap Audit Internal QMS</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-bold text-muted">Fungsi / Unit</label>
+                <select class="form-select bg-light" @bind="selectedDept">
+                    <option value="ALL">-- Semua Fungsi --</option>
+                    <option value="Production & Refinery">Production &amp; Refinery</option>
+                    <option value="Maintenance Execution">Maintenance Execution</option>
+                    <option value="HSSE & Safety">HSSE &amp; Safety</option>
+                    <option value="Quality Management">Quality Management</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button class="btn btn-dark w-100 rounded-3 fw-semibold" @onclick="ApplyFilter">
+                    <i class="fa fa-search me-1"></i> Tampilkan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ringkasan Statistik Laporan -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-danger">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Total Risalah Masuk</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">28 Risalah</h4>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-3">
+                        <i class="fa fa-book fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Telah Di-ACC</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">22 Risalah</h4>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-3">
+                        <i class="fa fa-check-double fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-info">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Estimasi Value Creation</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">Rp 1,42 M</h4>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded-circle p-3">
+                        <i class="fa fa-coins fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-warning">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Rata-rata Capaian KPI</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">94,8 %</h4>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 text-warning rounded-circle p-3">
+                        <i class="fa fa-chart-line fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Rekap Laporan -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fa fa-table text-danger me-2"></i>Data Rekapitulasi - @selectedType (@selectedYear)</h6>
+            <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 fw-bold">Status: siap cetak</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr class="small text-uppercase text-muted">
+                        <th class="ps-4">No</th>
+                        <th>Kode Laporan / Ref</th>
+                        <th>Judul Kegiatan / Indikator</th>
+                        <th>Fungsi / Unit</th>
+                        <th>Kategori</th>
+                        <th class="text-end">Value Creation / Nilai Target</th>
+                        <th class="text-center pe-4">Status Verifikasi</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    @if (rekapList.Any())
+                    {
+                        var index = 1;
+                        @foreach (var item in rekapList)
+                        {
+                            <tr>
+                                <td class="ps-4 fw-semibold">@(index++)</td>
+                                <td class="fw-bold text-danger">@item.Kode</td>
+                                <td>
+                                    <span class="fw-bold text-dark d-block">@item.Judul</span>
+                                    <small class="text-muted">PIC: @item.Pic</small>
+                                </td>
+                                <td>@item.Department</td>
+                                <td><span class="badge bg-secondary bg-opacity-10 text-dark rounded-pill px-3 py-1">@item.Kategori</span></td>
+                                <td class="text-end fw-bold text-dark">@item.ValueResult</td>
+                                <td class="text-center pe-4">
+                                    <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1"><i class="fa fa-check-circle me-1"></i> Verified</span>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string selectedYear = "2025"; // Default ke 2025 agar sesuai dengan filter di UI
+    private string selectedType = "Gugus";
+    private string selectedDept = "ALL";
+
+    // List master menampung seluruh data
+    private List<RekapModel> masterList = new();
+    
+    // List yang akan ditampilkan di tabel
+    private List<RekapModel> rekapList = new();
+
+    protected override void OnInitialized()
+    {
+        // Inisialisasi Data Master (2025 dan 2026)
+        masterList = new List<RekapModel>
+        {
+            // Data Tahun 2025
+            new RekapModel { Tahun = "2025", Kode = "REP-2025-001", Judul = "Optimasi Konsumsi Energi Furnace Unit CDU#2", Department = "Production & Refinery", Kategori = "CIP", Pic = "Budi Santoso", ValueResult = "Rp 450.000.000" },
+            new RekapModel { Tahun = "2025", Kode = "REP-2025-002", Judul = "Penurunan Level Leaking Flange Pipe Crude Distillation", Department = "Maintenance Execution", Kategori = "GKM", Pic = "Ahmad Dahlan", ValueResult = "Rp 210.000.000" },
+            new RekapModel { Tahun = "2025", Kode = "REP-2025-003", Judul = "Digitalisasi Izin Kerja Aman (JSA Online)", Department = "HSSE & Safety", Kategori = "PKM", Pic = "Siti Rahma", ValueResult = "Rp 180.000.000" },
+            new RekapModel { Tahun = "2025", Kode = "REP-2025-004", Judul = "Modifikasi Bracket Sensor Vibrasi Pump P-102B", Department = "Maintenance Execution", Kategori = "SS", Pic = "Eko Wijaya", ValueResult = "Rp 35.000.000" },
+
+            // Data Tahun 2026
+            new RekapModel { Tahun = "2026", Kode = "REP-2026-001", Judul = "Automasi Monitoring Suhu Boiler Unit 3", Department = "Production & Refinery", Kategori = "CIP", Pic = "Rahmat Hidayat", ValueResult = "Rp 500.000.000" },
+            new RekapModel { Tahun = "2026", Kode = "REP-2026-002", Judul = "Peningkatan Efisiensi Pompa Transfer Kilang", Department = "Maintenance Execution", Kategori = "GKM", Pic = "Dedi Kurniawan", ValueResult = "Rp 300.000.000" }
+        };
+
+        // Tampilkan filter pertama kali
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        // Filter berdasarkan Tahun
+        var query = masterList.Where(x => x.Tahun == selectedYear);
+
+        // Filter berdasarkan Fungsi / Department (jika bukan "ALL")
+        if (selectedDept != "ALL")
+        {
+            query = query.Where(x => x.Department == selectedDept);
+        }
+
+        rekapList = query.ToList();
+    }
+
+    private void ExportExcel()
+    {
+        // Trigger fungsi unduh Excel
+    }
+
+    private void PrintPdf()
+    {
+        // Trigger fungsi cetak PDF
+    }
+
+    public class RekapModel
+    {
+        public string Tahun { get; set; } = string.Empty; // Property Tambahan untuk Filter
+        public string Kode { get; set; } = string.Empty;
+        public string Judul { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string Kategori { get; set; } = string.Empty;
+        public string Pic { get; set; } = string.Empty;
+        public string ValueResult { get; set; } = string.Empty;
+    }
+}

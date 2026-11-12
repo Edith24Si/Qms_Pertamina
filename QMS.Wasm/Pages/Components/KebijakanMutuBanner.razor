@@ -1,0 +1,97 @@
+﻿
+<div class="container-fluid px-4 py-4">
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-white">
+        <div class="card-body p-4 p-lg-5">
+            <div class="row align-items-center g-4">
+                
+                <!-- KOLOM KIRI: Preview Gambar Dokumen -->
+                <div class="col-lg-5 col-md-6 text-center">
+                    <div class="preview-container position-relative p-2 bg-light rounded-3 shadow-sm border">
+                        <img src="assets/img/KebijakanMutu_2026.jpeg" 
+                             alt="Kebijakan Mutu RU II Dumai 2026" 
+                             class="img-fluid rounded border shadow-sm style-preview-img" />
+                    </div>
+                </div>
+
+                <!-- KOLOM KANAN: Detail Informasi & Teks -->
+                <div class="col-lg-7 col-md-6">
+                    <div class="ps-lg-3">
+                        
+                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-uppercase mb-3">
+                            <i class="fa fa-bullhorn me-1"></i> Pengumuman Berkas
+                        </span>
+
+                        <h2 class="fw-bold text-dark mb-3 display-6">
+                            Kebijakan Mutu RU II Dumai 2026
+                        </h2>
+
+                        <p class="text-secondary leading-relaxed mb-4">
+                            Komitmen PT Pertamina Patra Niaga Refinery Unit II Dumai dalam mengolah minyak dan gas bumi menjadi produk berkualitas tinggi, mengutamakan keselamatan kerja, aspek K3LL, serta kepuasan pelanggan dan pemangku kepentingan.
+                        </p>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-6 col-sm-4">
+                                <div class="p-2 border-start border-3 border-danger bg-light rounded-end">
+                                    <small class="text-muted d-block">Tahun Terbit</small>
+                                    <strong class="text-dark">2026</strong>
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4">
+                                <div class="p-2 border-start border-3 border-danger bg-light rounded-end">
+                                    <small class="text-muted d-block">Unit Operasional</small>
+                                    <strong class="text-dark">RU II Dumai</strong>
+                                </div>
+                            </div>
+                            <div class="col-6 col-sm-4">
+                                <div class="p-2 border-start border-3 border-danger bg-light rounded-end">
+                                    <small class="text-muted d-block">Status Dokumen</small>
+                                    <span class="badge bg-success-subtle text-success fw-bold">Aktif</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-2 pt-2">
+                            <a href="assets/img/KebijakanMutu_2026.jpeg" target="_blank" class="btn btn-danger btn-lg rounded-pill px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm">
+                                <i class="fa fa-file-pdf"></i>
+                                <span>Lihat Dokumen</span>
+                            </a>
+                            <button @onclick="DownloadDokumen" class="btn btn-outline-secondary btn-lg rounded-pill px-4 fw-semibold d-flex align-items-center gap-2">
+                                <i class="fa fa-download"></i>
+                                <span>Unduh PDF</span>
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .style-preview-img {
+        max-height: 480px;
+        width: auto;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+
+    .style-preview-img:hover {
+        transform: scale(1.02);
+    }
+
+    .preview-container {
+        background-color: #f8f9fa;
+        display: inline-block;
+    }
+</style>
+
+@code {
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+
+    private async Task DownloadDokumen()
+    {
+        await JSRuntime.InvokeVoidAsync("alert", "Mengunduh berkas Kebijakan Mutu RU II Dumai 2026...");
+    }
+}

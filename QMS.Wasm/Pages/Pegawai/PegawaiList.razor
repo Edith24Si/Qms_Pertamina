@@ -1,0 +1,810 @@
+@page "/pegawai"
+@page "/employee"
+@inject QmsApiService ApiService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+
+    <!-- Header Halaman -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="dashboard" class="text-decoration-none text-danger">Beranda</a></li>
+                    <li class="breadcrumb-item active">Data Pegawai</li>
+                </ol>
+            </nav>
+            <h4 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                <i class="fa fa-id-badge text-danger"></i>
+                <span>Direktori &amp; Master Data Pekerja Pertamina RU II Dumai</span>
+            </h4>
+            <p class="text-muted small mb-0">
+                Informasi data pegawai, nomor pekerja (NIP), jabatan fungsi, dan peran dalam Gugus Mutu.
+            </p>
+        </div>
+
+        <!-- Tombol Tambah: HANYA MUNCUL JIKA ADMIN -->
+        @if (isAdmin)
+        {
+            <div>
+                <button class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2"
+                        @onclick="OpenAddModal">
+                    <i class="fa fa-user-plus"></i>
+                    <span>Tambah Pegawai Baru</span>
+                </button>
+            </div>
+        }
+    </div>
+
+    <!-- Alert Notifikasi -->
+    @if (!string.IsNullOrEmpty(alertMessage))
+    {
+        <div class="alert alert-@alertType alert-dismissible fade show border-0 rounded-4 shadow-sm mb-4 d-flex align-items-center gap-2" role="alert">
+            <i class="fa @(alertType == "success" ? "fa-check-circle" : "fa-exclamation-circle") fs-5"></i>
+            <div>@alertMessage</div>
+            <button type="button" class="btn-close" @onclick="() => alertMessage = string.Empty"></button>
+        </div>
+    }
+
+    <!-- Kartu Statistik Singkat -->
+    <div class="row g-3 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-danger">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Total Pekerja Terdaftar</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">@allEmployees.Count</h4>
+                    </div>
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-3">
+                        <i class="fa fa-users fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-primary">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Fungsi / Unit Terdata</span>
+                        <h4 class="fw-bold text-dark mb-0 mt-1">
+                            @allEmployees.Select(e => e.Fungsi).Where(f => !string.IsNullOrEmpty(f)).Distinct().Count()
+                        </h4>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle p-3">
+                        <i class="fa fa-sitemap fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-success">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Status Akses Anda</span>
+                        <h4 class="fw-bold @(isAdmin ? "text-danger" : "text-primary") mb-0 mt-1">
+                            @(isAdmin ? "Administrator" : "Pegawai / User")
+                        </h4>
+                    </div>
+                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-3">
+                        <i class="fa fa-shield-alt fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card border-0 shadow-sm rounded-4 p-3 bg-white border-start border-4 border-info">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted small fw-semibold d-block">Akses Menu STK</span>
+                        <a href="https://youtu.be/ag7MoapQjAE?si=0lOGpNRP-Akrzi0A" target="_blank" class="fw-bold text-danger text-decoration-none small d-block mt-1">
+                            Buka STK Online &raquo;
+                        </a>
+                    </div>
+                    <div class="bg-info bg-opacity-10 text-info rounded-circle p-3">
+                        <i class="fa fa-external-link-alt fs-4"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter & Pencarian Pegawai -->
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white">
+        <div class="row g-3 align-items-center">
+            <div class="col-md-5">
+                <label class="form-label small fw-bold text-muted mb-1">
+                    <i class="fa fa-filter me-1 text-danger"></i> Filter Berdasarkan Fungsi
+                </label>
+                <select class="form-select bg-light border-0 rounded-3 shadow-none py-2" @onchange="OnFungsiChanged">
+                    <option value="">-- Semua Fungsi / Unit Kerja --</option>
+                    @foreach (var f in distinctFungsi)
+                    {
+                        <option value="@f">@f</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-7">
+                <label class="form-label small fw-bold text-muted mb-1">
+                    <i class="fa fa-search me-1 text-danger"></i> Cari NIP, Nama, atau Jabatan
+                </label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0 text-muted"><i class="fa fa-search"></i></span>
+                    <input type="text" class="form-control bg-light border-0 shadow-none py-2" 
+                           placeholder="Ketik nama pegawai, NIP, email, atau jabatan..." 
+                           @bind="searchQuery" @bind:event="oninput" />
+                    @if (!string.IsNullOrEmpty(searchQuery))
+                    {
+                        <button class="btn btn-light border-0 text-muted" @onclick="() => searchQuery = string.Empty">
+                            <i class="fa fa-times"></i>
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabel Data Pegawai -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4 bg-white">
+        <div class="card-header bg-white py-3 px-4 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h6 class="fw-bold mb-0 text-dark"><i class="fa fa-list text-danger me-2"></i>Daftar Pekerja Terdaftar</h6>
+            <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 fw-bold">
+                Total: @FilteredEmployees.Count Pekerja
+            </span>
+        </div>
+
+        @if (isLoading)
+        {
+            <div class="text-center py-5">
+                <div class="spinner-border text-danger" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="text-muted small mt-2 mb-0">Memuat data pegawai dari database...</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light border-bottom">
+                        <tr class="small text-uppercase text-muted" style="letter-spacing: 0.5px;">
+                            <th class="ps-4 py-3" style="width: 5%;">No</th>
+                            <th style="width: 12%;">No. Pekerja (NIP)</th>
+                            <th style="width: 28%;">Nama Lengkap &amp; Email</th>
+                            <th style="width: 25%;">Fungsi / Unit Kerja</th>
+                            <th style="width: 18%;">Jabatan</th>
+                            <th class="text-center pe-4" style="width: 12%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="small">
+                        @if (PagedEmployees.Any())
+                        {
+                            var index = (currentPage - 1) * pageSize + 1;
+                            @foreach (var emp in PagedEmployees)
+                            {
+                                <tr>
+                                    <td class="ps-4 fw-semibold text-muted">@(index++)</td>
+                                    <td>
+                                        <span class="badge bg-danger bg-opacity-10 text-danger font-monospace px-2 py-1 fw-bold" style="font-size: 0.8rem;">
+                                            @emp.NoPeg
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="user-avatar-small">
+                                                <i class="fa fa-user text-secondary"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-bold text-dark d-block">@emp.EmpName</span>
+                                                <small class="text-muted d-block text-truncate" style="max-width: 240px;">
+                                                    @(string.IsNullOrEmpty(emp.Email) ? "-" : emp.Email)
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold text-dark d-block">
+                                            @(string.IsNullOrEmpty(emp.Fungsi) ? "Refinery Unit II" : emp.Fungsi)
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border px-2 py-1">
+                                            @(string.IsNullOrEmpty(emp.Jabatan) ? "Pekerja" : emp.Jabatan)
+                                        </span>
+                                    </td>
+
+                                    <!-- Kolom Aksi Berupa Icon Saja -->
+                                    <td class="text-center pe-4">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            
+                                            <!-- VIEW (User & Admin memiliki akses View) -->
+                                            <button class="btn btn-icon btn-soft-primary" 
+                                                    title="Lihat Detail Pekerja" 
+                                                    @onclick="() => OpenViewModal(emp)">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+
+                                            <!-- EDIT & HAPUS: HANYA ADA JIKA ADMIN -->
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" 
+                                                        title="Edit Data Pekerja" 
+                                                        @onclick="() => OpenEditModal(emp)">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                
+                                                <button class="btn btn-icon btn-soft-danger" 
+                                                        title="Hapus Data Pekerja" 
+                                                        @onclick="() => OpenDeleteConfirm(emp)">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="fa fa-user-slash fs-1 text-danger opacity-50 d-block mb-2"></i>
+                                    <span class="fw-bold d-block">Tidak ada data pegawai yang ditemukan</span>
+                                    <small class="text-muted">Coba sesuaikan kata kunci pencarian atau filter fungsi.</small>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination Bar -->
+            @if (TotalPages > 1)
+            {
+                <div class="card-footer bg-white py-3 px-4 border-top d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <small class="text-muted">
+                        Menampilkan @(((currentPage - 1) * pageSize) + 1) - @(Math.Min(currentPage * pageSize, FilteredEmployees.Count)) dari @FilteredEmployees.Count pekerja
+                    </small>
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                                <button class="page-link rounded-start-pill" @onclick="() => currentPage--">
+                                    <i class="fa fa-chevron-left"></i>
+                                </button>
+                            </li>
+                            @for (int p = Math.Max(1, currentPage - 2); p <= Math.Min(TotalPages, currentPage + 2); p++)
+                            {
+                                var pageNum = p;
+                                <li class="page-item @(currentPage == pageNum ? "active" : "")">
+                                    <button class="page-link" @onclick="() => currentPage = pageNum">@pageNum</button>
+                                </li>
+                            }
+                            <li class="page-item @(currentPage == TotalPages ? "disabled" : "")">
+                                <button class="page-link rounded-end-pill" @onclick="() => currentPage++">
+                                    <i class="fa fa-chevron-right"></i>
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        }
+    </div>
+
+</div>
+
+<!-- ============================================================== -->
+<!-- 1. MODAL TAMBAH PEGAWAI (ADMIN ONLY) -->
+<!-- ============================================================== -->
+@if (showAddModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-danger text-white px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-user-plus fs-4"></i>
+                        <h5 class="modal-title fw-bold">Tambah Data Pekerja Baru</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showAddModal = false"></button>
+                </div>
+                <EditForm Model="@newEmp" OnValidSubmit="HandleSaveNewEmp">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">No. Pekerja (NIP) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control rounded-3 py-2 font-monospace" 
+                                       placeholder="Contoh: 789100" @bind="newEmp.NoPeg" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Nama Lengkap Pekerja <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       placeholder="Masukkan nama lengkap..." @bind="newEmp.EmpName" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Email Resmi Pertamina</label>
+                                <input type="email" class="form-control rounded-3 py-2" 
+                                       placeholder="nama@pertamina.com" @bind="newEmp.Email" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Nomor Telepon / Kontak</label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       placeholder="0812xxxx" @bind="newEmp.Telpon" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Fungsi / Unit Kerja</label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       placeholder="Contoh: Quality Management" @bind="newEmp.Fungsi" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Jabatan Struktural</label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       placeholder="Contoh: Sr. Engineer QMS" @bind="newEmp.Jabatan" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light px-4 py-3 border-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4 text-secondary" @onclick="() => showAddModal = false">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Menyimpan...</span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-save me-1"></i>
+                                <span>Simpan Data</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ============================================================== -->
+<!-- 2. MODAL EDIT PEGAWAI (ADMIN ONLY) -->
+<!-- ============================================================== -->
+@if (showEditModal && editingEmp != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-warning text-dark px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-user-edit fs-4"></i>
+                        <h5 class="modal-title fw-bold">Edit Pekerja NIP #@editingEmp.NoPeg</h5>
+                    </div>
+                    <button type="button" class="btn-close" @onclick="() => showEditModal = false"></button>
+                </div>
+                <EditForm Model="@editingEmp" OnValidSubmit="HandleSaveEditEmp">
+                    <div class="modal-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">No. Pekerja (NIP)</label>
+                                <input type="number" class="form-control rounded-3 py-2 bg-light font-monospace" 
+                                       @bind="editingEmp.NoPeg" disabled />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Nama Lengkap <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control rounded-3 py-2" 
+                                       @bind="editingEmp.EmpName" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Email Pertamina</label>
+                                <input type="email" class="form-control rounded-3 py-2" @bind="editingEmp.Email" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Telepon / Ext</label>
+                                <input type="text" class="form-control rounded-3 py-2" @bind="editingEmp.Telpon" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Fungsi / Unit Kerja</label>
+                                <input type="text" class="form-control rounded-3 py-2" @bind="editingEmp.Fungsi" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold text-dark">Jabatan Struktural</label>
+                                <input type="text" class="form-control rounded-3 py-2" @bind="editingEmp.Jabatan" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light px-4 py-3 border-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4 text-secondary" @onclick="() => showEditModal = false">
+                            Batal
+                        </button>
+                        <button type="submit" class="btn btn-warning rounded-pill px-4 fw-bold shadow-sm" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Menyimpan...</span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-check me-1"></i>
+                                <span>Simpan Perubahan</span>
+                            }
+                        </button>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ============================================================== -->
+<!-- 3. MODAL VIEW DETAIL PEGAWAI (USER & ADMIN) -->
+<!-- ============================================================== -->
+@if (showViewModal && viewingEmp != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-dark text-white px-4 py-3 border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa fa-id-card text-danger fs-5"></i>
+                        <h6 class="modal-title fw-bold">Detail Profil Pekerja</h6>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" @onclick="() => showViewModal = false"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div class="emp-avatar-large mb-3">
+                        <i class="fa fa-user-tie text-danger fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-0">@viewingEmp.EmpName</h5>
+                    <span class="badge bg-danger bg-opacity-10 text-danger font-monospace px-3 py-1 my-2">
+                        NIP: @viewingEmp.NoPeg
+                    </span>
+
+                    <ul class="list-group list-group-flush small text-start border-top mt-3 pt-2">
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Email:</span>
+                            <span class="fw-semibold text-dark">@(string.IsNullOrEmpty(viewingEmp.Email) ? "-" : viewingEmp.Email)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Fungsi / Unit Kerja:</span>
+                            <span class="fw-semibold text-dark">@(string.IsNullOrEmpty(viewingEmp.Fungsi) ? "Refinery Unit II" : viewingEmp.Fungsi)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Jabatan:</span>
+                            <span class="fw-semibold text-dark">@(string.IsNullOrEmpty(viewingEmp.Jabatan) ? "-" : viewingEmp.Jabatan)</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0 bg-transparent">
+                            <span class="text-muted">Kontak / Ext:</span>
+                            <span class="fw-semibold font-monospace">@(string.IsNullOrEmpty(viewingEmp.Telpon) ? "-" : viewingEmp.Telpon)</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="modal-footer bg-light px-4 py-3 border-0">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4 w-100" @onclick="() => showViewModal = false">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ============================================================== -->
+<!-- 4. MODAL KONFIRMASI HAPUS PEGAWAI (ADMIN ONLY) -->
+<!-- ============================================================== -->
+@if (showDeleteModal && deletingEmp != null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-body p-4 text-center">
+                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex p-3 mb-3">
+                        <i class="fa fa-trash-alt fs-1"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Hapus Data Pekerja?</h5>
+                    <p class="text-muted small mb-3">
+                        Apakah Anda yakin ingin menghapus data pekerja ini dari database sistem?
+                    </p>
+                    <div class="p-3 bg-light rounded-3 text-start small font-monospace mb-4">
+                        <strong class="text-danger">NIP #@deletingEmp.NoPeg:</strong> @deletingEmp.EmpName
+                    </div>
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-light rounded-pill px-4" @onclick="() => showDeleteModal = false">
+                            Batal
+                        </button>
+                        <button type="button" class="btn btn-danger rounded-pill px-4 fw-bold shadow-sm" 
+                                @onclick="ConfirmDeleteEmp" disabled="@isSubmitting">
+                            @if (isSubmitting)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1"></span>
+                                <span>Menghapus...</span>
+                            }
+                            else
+                            {
+                                <i class="fa fa-trash-alt me-1"></i>
+                                <span>Ya, Hapus Sekarang</span>
+                            }
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .user-avatar-small {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background-color: #f1f5f9;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .emp-avatar-large {
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background-color: #fee2e2;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s ease;
+        font-size: 0.82rem;
+    }
+
+    .btn-icon:hover {
+        transform: translateY(-2px);
+    }
+
+    .btn-soft-primary {
+        background-color: #e0f2fe;
+        color: #0284c7;
+    }
+    .btn-soft-primary:hover {
+        background-color: #0284c7;
+        color: #ffffff;
+    }
+
+    .btn-soft-warning {
+        background-color: #fef3c7;
+        color: #d97706;
+    }
+    .btn-soft-warning:hover {
+        background-color: #d97706;
+        color: #ffffff;
+    }
+
+    .btn-soft-danger {
+        background-color: #fee2e2;
+        color: #dc2626;
+    }
+    .btn-soft-danger:hover {
+        background-color: #dc2626;
+        color: #ffffff;
+    }
+</style>
+
+@code {
+    private bool isAdmin = false;
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+
+    private List<TbEmployee> allEmployees = new();
+    private List<string> distinctFungsi = new();
+
+    private string searchQuery = string.Empty;
+    private string selectedFungsi = string.Empty;
+
+    // Pagination
+    private int currentPage = 1;
+    private int pageSize = 15;
+
+    // Modals
+    private bool showAddModal = false;
+    private bool showEditModal = false;
+    private bool showViewModal = false;
+    private bool showDeleteModal = false;
+
+    private TbEmployee newEmp = new();
+    private TbEmployee? editingEmp;
+    private TbEmployee? viewingEmp;
+    private TbEmployee? deletingEmp;
+
+    // Alert
+    private string alertMessage = string.Empty;
+    private string alertType = "success";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var role = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+                isAdmin = (role == "Administrator");
+                StateHasChanged();
+            }
+            catch {}
+        }
+    }
+
+    private async Task LoadDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            allEmployees = await ApiService.GetEmployeesAsync(limit: 500);
+            distinctFungsi = allEmployees
+                .Select(e => e.Fungsi ?? string.Empty)
+                .Where(f => !string.IsNullOrWhiteSpace(f))
+                .Distinct()
+                .OrderBy(f => f)
+                .ToList();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading employees: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private List<TbEmployee> FilteredEmployees
+    {
+        get
+        {
+            var q = allEmployees.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(selectedFungsi))
+            {
+                q = q.Where(e => (e.Fungsi ?? string.Empty).Equals(selectedFungsi, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchQuery))
+            {
+                var s = searchQuery.Trim().ToLower();
+                q = q.Where(e => e.EmpName.ToLower().Contains(s) ||
+                                 e.NoPeg.ToString().Contains(s) ||
+                                 (e.Email ?? string.Empty).ToLower().Contains(s) ||
+                                 (e.Jabatan ?? string.Empty).ToLower().Contains(s) ||
+                                 (e.Fungsi ?? string.Empty).ToLower().Contains(s));
+            }
+
+            return q.ToList();
+        }
+    }
+
+    private List<TbEmployee> PagedEmployees =>
+        FilteredEmployees.Skip((currentPage - 1) * pageSize).Take(pageSize).ToList();
+
+    private int TotalPages => (int)Math.Ceiling((double)FilteredEmployees.Count / pageSize);
+
+    private void OnFungsiChanged(ChangeEventArgs e)
+    {
+        selectedFungsi = e.Value?.ToString() ?? string.Empty;
+        currentPage = 1;
+    }
+
+    // Modal Actions
+    private void OpenAddModal()
+    {
+        newEmp = new TbEmployee
+        {
+            NoPeg = 0,
+            Fungsi = "Quality Management",
+            Jabatan = "Staff Mutu"
+        };
+        showAddModal = true;
+    }
+
+    private async Task HandleSaveNewEmp()
+    {
+        isSubmitting = true;
+        var success = await ApiService.CreateEmployeeAsync(newEmp);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showAddModal = false;
+            alertType = "success";
+            alertMessage = $"Data pekerja '{newEmp.EmpName}' berhasil ditambahkan ke database!";
+            await LoadDataAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = "Gagal menyimpan data pekerja baru.";
+        }
+    }
+
+    private void OpenEditModal(TbEmployee emp)
+    {
+        editingEmp = new TbEmployee
+        {
+            NoPeg = emp.NoPeg,
+            EmpName = emp.EmpName,
+            Email = emp.Email,
+            Fungsi = emp.Fungsi,
+            Jabatan = emp.Jabatan,
+            Telpon = emp.Telpon,
+            Password = emp.Password,
+            ResetPswd = emp.ResetPswd
+        };
+        showEditModal = true;
+    }
+
+    private async Task HandleSaveEditEmp()
+    {
+        if (editingEmp == null) return;
+        isSubmitting = true;
+        var success = await ApiService.UpdateEmployeeAsync(editingEmp.NoPeg, editingEmp);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showEditModal = false;
+            alertType = "success";
+            alertMessage = $"Data pekerja #{editingEmp.NoPeg} berhasil diperbarui!";
+            await LoadDataAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = "Gagal memperbarui data pekerja.";
+        }
+    }
+
+    private void OpenViewModal(TbEmployee emp)
+    {
+        viewingEmp = emp;
+        showViewModal = true;
+    }
+
+    private void OpenDeleteConfirm(TbEmployee emp)
+    {
+        deletingEmp = emp;
+        showDeleteModal = true;
+    }
+
+    private async Task ConfirmDeleteEmp()
+    {
+        if (deletingEmp == null) return;
+        isSubmitting = true;
+        var success = await ApiService.DeleteEmployeeAsync(deletingEmp.NoPeg);
+        isSubmitting = false;
+
+        if (success)
+        {
+            showDeleteModal = false;
+            alertType = "success";
+            alertMessage = $"Data pekerja #{deletingEmp.NoPeg} '{deletingEmp.EmpName}' berhasil dihapus!";
+            await LoadDataAsync();
+        }
+        else
+        {
+            alertType = "danger";
+            alertMessage = "Gagal menghapus data pekerja.";
+        }
+    }
+}

@@ -87,3 +87,124 @@ code {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+
+/* ==========================================================================
+   Icon Compatibility & Fallback Layer (FontAwesome 4 / 5 / 6 / Bootstrap Icons)
+   ========================================================================== */
+.fa-pen:before, .fa-pencil:before, .fa-pencil-alt:before { content: "\f040" !important; }
+.fa-trash-alt:before, .fa-trash:before { content: "\f1f8" !important; }
+.fa-file-pdf:before { content: "\f1c1" !important; }
+.fa-file-excel:before { content: "\f1c3" !important; }
+.fa-file-word:before { content: "\f1c2" !important; }
+.fa-file-alt:before { content: "\f0f6" !important; }
+.fa-cloud-upload-alt:before { content: "\f0ee" !important; }
+.fa-calendar-alt:before { content: "\f073" !important; }
+.fa-external-link-alt:before { content: "\f08e" !important; }
+.fa-sign-out-alt:before { content: "\f08b" !important; }
+.fa-sign-in-alt:before { content: "\f090" !important; }
+.fa-user-shield:before { content: "\f132" !important; }
+.fa-shield-alt:before { content: "\f132" !important; }
+.fa-id-card:before { content: "\f2bb" !important; }
+.fa-id-badge:before { content: "\f2c1" !important; }
+.fa-users-cog:before { content: "\f085" !important; }
+.fa-user-edit:before { content: "\f044" !important; }
+.fa-user-slash:before { content: "\f007" !important; }
+.fa-user-tie:before { content: "\f007" !important; }
+.fa-clipboard-check:before { content: "\f046" !important; }
+.fa-check-double:before { content: "\f00c" !important; }
+.fa-pen-square:before { content: "\f14b" !important; }
+.fa-coins:before { content: "\f155" !important; }
+.fa-file-invoice:before { content: "\f15c" !important; }
+.fa-file-contract:before { content: "\f15c" !important; }
+
+/* ==========================================================================
+   QMS Pertamina - Tombol Aksi Elegan & Modern (Action Buttons)
+   ========================================================================== */
+.btn-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    padding: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 9px !important;
+    font-size: 0.88rem !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+    text-decoration: none !important;
+    vertical-align: middle !important;
+}
+
+.btn-icon i {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.92rem !important;
+    line-height: 1 !important;
+    font-style: normal !important;
+}
+
+.btn-icon:hover {
+    transform: translateY(-2px) scale(1.05) !important;
+}
+
+.btn-icon:active {
+    transform: translateY(0) scale(0.96) !important;
+}
+
+/* 👁️ View: Soft Sky Blue Modern */
+.btn-soft-primary {
+    background-color: #f0f7ff !important;
+    color: #0284c7 !important;
+    border: 1px solid #bae6fd !important;
+}
+.btn-soft-primary:hover {
+    background-color: #0284c7 !important;
+    color: #ffffff !important;
+    border-color: #0284c7 !important;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35) !important;
+}
+
+/* 📥 Unduh: Soft Emerald Mint */
+.btn-soft-info {
+    background-color: #ecfdf5 !important;
+    color: #059669 !important;
+    border: 1px solid #a7f3d0 !important;
+}
+.btn-soft-info:hover {
+    background-color: #059669 !important;
+    color: #ffffff !important;
+    border-color: #059669 !important;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35) !important;
+}
+
+/* ✏️ Edit: Soft Amber Gold */
+.btn-soft-warning {
+    background-color: #fffbeb !important;
+    color: #d97706 !important;
+    border: 1px solid #fde68a !important;
+}
+.btn-soft-warning:hover {
+    background-color: #d97706 !important;
+    color: #ffffff !important;
+    border-color: #d97706 !important;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35) !important;
+}
+
+/* 🗑️ Hapus: Soft Rose Pertamina Red */
+.btn-soft-danger {
+    background-color: #fef2f2 !important;
+    color: #dc2626 !important;
+    border: 1px solid #fecaca !important;
+}
+.btn-soft-danger:hover {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    border-color: #dc2626 !important;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35) !important;
+}

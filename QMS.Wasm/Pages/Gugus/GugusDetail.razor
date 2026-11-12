@@ -1,0 +1,95 @@
+﻿@page "/gugus/detail"
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold mb-1 text-dark">
+                <i class="fa fa-users text-danger me-2"></i>Form Pendaftaran Gugus Mutu
+            </h4>
+            <p class="text-muted small mb-0">Daftarkan tim CIP, GKM, PKM, atau SS baru untuk penilaian Sistem Manajemen Mutu.</p>
+        </div>
+        <NavLink href="gugus" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold small">
+            <i class="fa fa-arrow-left me-2"></i>Kembali ke Daftar ACC
+        </NavLink>
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+        <EditForm Model="@gugusModel" OnValidSubmit="HandleSave">
+            <DataAnnotationsValidator />
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Kode Gugus <span class="text-danger">*</span></label>
+                    <InputText @bind-Value="gugusModel.Code" class="form-control bg-light" placeholder="Contoh: CIP-RU2-2026-05" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Nama Gugus / Tim <span class="text-danger">*</span></label>
+                    <InputText @bind-Value="gugusModel.GugusName" class="form-control bg-light" placeholder="Contoh: Gugus PC-80" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Kategori Gugus <span class="text-danger">*</span></label>
+                    <InputSelect @bind-Value="gugusModel.Category" class="form-select bg-light">
+                        <option value="">-- Pilih Kategori --</option>
+                        <option value="CIP">CIP (Continuous Improvement Project)</option>
+                        <option value="GKM">GKM (Gugus Kendali Mutu)</option>
+                        <option value="PKM">PKM (Proyek Kendali Mutu)</option>
+                        <option value="SS">SS (Sumbang Saran)</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Fungsi / Unit <span class="text-danger">*</span></label>
+                    <InputSelect @bind-Value="gugusModel.Department" class="form-select bg-light">
+                        <option value="">-- Pilih Fungsi --</option>
+                        <option value="Production & Refinery">Production &amp; Refinery</option>
+                        <option value="Maintenance Execution">Maintenance Execution</option>
+                        <option value="HSSE & Safety">HSSE &amp; Safety</option>
+                        <option value="Quality Management">Quality Management</option>
+                    </InputSelect>
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label small fw-bold">Judul Risalah Improvement <span class="text-danger">*</span></label>
+                    <InputText @bind-Value="gugusModel.Title" class="form-control bg-light" placeholder="Masukkan judul risalah..." />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Nama Fasilitator <span class="text-danger">*</span></label>
+                    <InputText @bind-Value="gugusModel.Facilitator" class="form-control bg-light" placeholder="Nama fasilitator..." />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small fw-bold">Nama Ketua Tim <span class="text-danger">*</span></label>
+                    <InputText @bind-Value="gugusModel.Leader" class="form-control bg-light" placeholder="Nama ketua tim..." />
+                </div>
+            </div>
+
+            <hr class="my-4" />
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-danger rounded-pill px-4 fw-semibold">
+                    <i class="fa fa-save me-2"></i>Simpan Gugus
+                </button>
+                <NavLink href="gugus" class="btn btn-light rounded-pill px-4 text-secondary">
+                    Batal
+                </NavLink>
+            </div>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    private FormGugusModel gugusModel = new();
+
+    private void HandleSave()
+    {
+        Navigation.NavigateTo("gugus");
+    }
+
+    public class FormGugusModel
+    {
+        public string Code { get; set; } = string.Empty;
+        public string GugusName { get; set; } = string.Empty;
+        public string Category { get; set; } = string.Empty;
+        public string Department { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string Facilitator { get; set; } = string.Empty;
+        public string Leader { get; set; } = string.Empty;
+    }
+}

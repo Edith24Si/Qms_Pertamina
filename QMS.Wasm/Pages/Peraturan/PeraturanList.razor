@@ -1,0 +1,346 @@
+@page "/peraturan/{menuName?}"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <div class="card shadow-sm border-0 rounded-4">
+        <!-- Header Card dengan Tombol Tambah (Khusus Admin) -->
+        <div class="card-header bg-white py-3 px-4 d-flex justify-content-between align-items-center border-0">
+            <div>
+                <h5 class="fw-bold mb-1 text-dark d-flex align-items-center gap-2">
+                    <i class="fa fa-balance-scale text-danger"></i>
+                    <span>@activeTitle</span>
+                </h5>
+                <p class="text-muted small mb-0">Ketentuan perundangan dan kepatuhan hukum operasional RU II Dumai</p>
+            </div>
+            @if (isAdmin)
+            {
+                <button class="btn btn-danger btn-sm rounded-pill px-4 fw-semibold shadow-sm" @onclick="OpenAddModal">
+                    <i class="fa fa-plus me-1"></i> Tambah Dokumen
+                </button>
+            }
+        </div>
+
+        <div class="card-body p-4 pt-0">
+            <!-- Tab Sub-Menu -->
+            <ul class="nav nav-pills mb-4 border-bottom pb-3 gap-2">
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill px-4 @(activeTab == "evaluasi" ? "active bg-danger" : "btn-light text-dark")" @onclick='() => SwitchTab("evaluasi")'>
+                        Evaluasi Pematuhan Perundangan
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill px-4 @(activeTab == "daftar" ? "active bg-danger" : "btn-light text-dark")" @onclick='() => SwitchTab("daftar")'>
+                        Daftar Peraturan Perundangan
+                    </button>
+                </li>
+            </ul>
+
+            <!-- Search Bar -->
+            <div class="card border-0 shadow-sm rounded-3 mb-4 bg-light p-2">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent border-0 text-muted"><i class="fa fa-search"></i></span>
+                    <input type="text" class="form-control bg-transparent border-0" placeholder="Cari nomor, judul, atau instansi perundangan..." @bind="searchQuery" @bind:event="oninput" />
+                </div>
+            </div>
+
+            <!-- Tabel Data -->
+            <div class="table-responsive rounded-3 border">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-secondary">
+                            <th class="ps-3 py-3" style="width: 50px;">No</th>
+                            <th class="py-3">No / Judul Peraturan</th>
+                            <th class="py-3">Kategori / Instansi</th>
+                            <th class="py-3 text-center">Tahun</th>
+                            <th class="py-3 text-center">Status Pemenuhan</th>
+                            <th class="text-center pe-3 py-3" style="min-width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredList.Any())
+                        {
+                            int no = 1;
+                            @foreach (var item in FilteredList)
+                            {
+                                <tr>
+                                    <td class="ps-3 small text-muted">@(no++)</td>
+                                    <td>
+                                        <div class="fw-bold text-dark">@item.NomorPeraturan</div>
+                                        <div class="text-muted small">@item.JudulPeraturan</div>
+                                    </td>
+                                    <td><span class="badge bg-secondary-subtle text-secondary">@item.Instansi</span></td>
+                                    <td class="text-center"><span class="badge bg-light text-dark border">@item.TahunTerbit</span></td>
+                                    <td class="text-center">
+                                        <span class="badge @(item.Status == "Patuh" || item.Status == "Berlaku" ? "bg-success-subtle text-success" : "bg-warning-subtle text-warning")">
+                                            @item.Status
+                                        </span>
+                                    </td>
+                                    <!-- Aksi: Icon only (User: View & Unduh; Admin: Semua) -->
+                                    <td class="text-center pe-3">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <button class="btn btn-icon btn-soft-primary" @onclick="() => ViewPdf(item.PdfUrl)" title="Lihat Pratinjau">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+                                            <a href="@item.PdfUrl" download target="_blank" class="btn btn-icon btn-soft-info" title="Unduh Berkas">
+                                                <i class="fa fa-download"></i>
+                                            </a>
+
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" @onclick="() => EditItem(item)" title="Edit Dokumen">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-soft-danger" @onclick="() => DeleteItem(item.Id)" title="Hapus Dokumen">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="fa fa-folder-open fs-2 text-secondary mb-2 d-block opacity-50"></i>
+                                    Tidak ada data peraturan yang ditemukan.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Tambah/Edit -->
+@if (isModalOpen && isAdmin)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold">
+                        @(currentItem.Id == 0 ? "Tambah Peraturan Baru" : "Edit Peraturan")
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Nomor Peraturan *</label>
+                        <input type="text" class="form-control" @bind="currentItem.NomorPeraturan" placeholder="Contoh: PP No. 50 Tahun 2012" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Judul / Perihal *</label>
+                        <input type="text" class="form-control" @bind="currentItem.JudulPeraturan" placeholder="Contoh: Penerapan Sistem Manajemen K3" />
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Instansi / Penerbit</label>
+                            <input type="text" class="form-control" @bind="currentItem.Instansi" placeholder="Contoh: Pemerintah RI" />
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-bold">Tahun Terbit</label>
+                            <input type="number" class="form-control" @bind="currentItem.TahunTerbit" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Status Pemenuhan</label>
+                        <select class="form-select" @bind="currentItem.Status">
+                            <option value="Patuh">Patuh / Memenuhi</option>
+                            <option value="Dalam Proses">Dalam Proses</option>
+                            <option value="Berlaku">Berlaku</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Tautan File PDF</label>
+                        <input type="text" class="form-control" @bind="currentItem.PdfUrl" placeholder="document/Template_Risalah_2026.pdf" />
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <button type="button" class="btn btn-light rounded-pill px-4" @onclick="CloseModal">Batal</button>
+                        <button type="button" class="btn btn-danger rounded-pill px-4 fw-semibold" @onclick="SaveItem">Simpan Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Viewer PDF -->
+@if (showPdfModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.65); z-index: 1060;">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div class="modal-header bg-light border-0 py-3 px-4">
+                    <h5 class="modal-title fw-bold text-dark mb-0">Pratinjau Dokumen Peraturan</h5>
+                    <button type="button" class="btn-close" @onclick="ClosePdfModal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <iframe src="@($"{selectedPdfUrl}#toolbar=0&navpanes=0")" width="100%" height="650px" style="border: none;"></iframe>
+                </div>
+                <div class="modal-footer bg-light border-0 py-2 px-4 justify-content-end">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" @onclick="ClosePdfModal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s ease;
+        font-size: 0.82rem;
+    }
+    .btn-icon:hover { transform: translateY(-2px); }
+    .btn-soft-primary { background-color: #e0f2fe; color: #0284c7; }
+    .btn-soft-primary:hover { background-color: #0284c7; color: #ffffff; }
+    .btn-soft-info { background-color: #ecfdf5; color: #059669; }
+    .btn-soft-info:hover { background-color: #059669; color: #ffffff; }
+    .btn-soft-warning { background-color: #fef3c7; color: #d97706; }
+    .btn-soft-warning:hover { background-color: #d97706; color: #ffffff; }
+    .btn-soft-danger { background-color: #fee2e2; color: #dc2626; }
+    .btn-soft-danger:hover { background-color: #dc2626; color: #ffffff; }
+</style>
+
+@code {
+    [Parameter] public string? MenuName { get; set; }
+
+    private string activeTab = "evaluasi";
+    private string activeTitle = "Evaluasi Pematuhan Perundangan";
+    private string searchQuery = string.Empty;
+    private bool isAdmin = false;
+
+    private bool isModalOpen = false;
+    private bool showPdfModal = false;
+    private string selectedPdfUrl = string.Empty;
+
+    private PeraturanModel currentItem = new();
+    private List<PeraturanModel> allItems = new();
+
+    public class PeraturanModel
+    {
+        public int Id { get; set; }
+        public string JenisMenu { get; set; } = "evaluasi";
+        public string NomorPeraturan { get; set; } = string.Empty;
+        public string JudulPeraturan { get; set; } = string.Empty;
+        public string Instansi { get; set; } = string.Empty;
+        public int TahunTerbit { get; set; } = DateTime.Now.Year;
+        public string Status { get; set; } = "Patuh";
+        public string PdfUrl { get; set; } = "document/Template_Risalah_2026.pdf";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+            isAdmin = userRole?.Equals("Administrator", StringComparison.OrdinalIgnoreCase) == true ||
+                      userRole?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true;
+            StateHasChanged();
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        LoadDummyData();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (!string.IsNullOrEmpty(MenuName))
+        {
+            SwitchTab(MenuName.ToLower());
+        }
+    }
+
+    private void SwitchTab(string tab)
+    {
+        activeTab = tab;
+        activeTitle = tab == "evaluasi" ? "Evaluasi Pematuhan Perundangan" : "Daftar Peraturan Perundangan";
+    }
+
+    private void LoadDummyData()
+    {
+        allItems = new List<PeraturanModel>
+        {
+            new PeraturanModel { Id = 1, JenisMenu = "evaluasi", NomorPeraturan = "UU No. 1 Tahun 1970", JudulPeraturan = "Keselamatan Kerja di Lingkungan Kilang", Instansi = "Pemerintah RI", TahunTerbit = 1970, Status = "Patuh", PdfUrl = "document/Template_Risalah_2026.pdf" },
+            new PeraturanModel { Id = 2, JenisMenu = "evaluasi", NomorPeraturan = "PP No. 50 Tahun 2012", JudulPeraturan = "Penerapan Sistem Manajemen Keselamatan dan Kesehatan Kerja", Instansi = "Kemenaker", TahunTerbit = 2012, Status = "Patuh", PdfUrl = "document/Template_Risalah_2026.pdf" },
+            new PeraturanModel { Id = 3, JenisMenu = "evaluasi", NomorPeraturan = "Permen LHK No. 05/2021", JudulPeraturan = "Standar Baku Mutu Emisi Usaha Minyak dan Gas Bumi", Instansi = "KLHK", TahunTerbit = 2021, Status = "Dalam Proses", PdfUrl = "document/Template_Risalah_2026.pdf" },
+            new PeraturanModel { Id = 4, JenisMenu = "daftar", NomorPeraturan = "ISO 9001:2015", JudulPeraturan = "Quality Management Systems - Requirements", Instansi = "ISO / BSN", TahunTerbit = 2015, Status = "Berlaku", PdfUrl = "document/Template_Risalah_2026.pdf" },
+            new PeraturanModel { Id = 5, JenisMenu = "daftar", NomorPeraturan = "ISO 14001:2015", JudulPeraturan = "Environmental Management Systems", Instansi = "ISO / BSN", TahunTerbit = 2015, Status = "Berlaku", PdfUrl = "document/Template_Risalah_2026.pdf" },
+            new PeraturanModel { Id = 6, JenisMenu = "daftar", NomorPeraturan = "ISO 45001:2018", JudulPeraturan = "Occupational Health and Safety Management Systems", Instansi = "ISO / BSN", TahunTerbit = 2018, Status = "Berlaku", PdfUrl = "document/Template_Risalah_2026.pdf" }
+        };
+    }
+
+    private IEnumerable<PeraturanModel> FilteredList =>
+        allItems.Where(x => x.JenisMenu == activeTab &&
+            (string.IsNullOrWhiteSpace(searchQuery) ||
+             x.NomorPeraturan.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+             x.JudulPeraturan.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+             x.Instansi.Contains(searchQuery, StringComparison.OrdinalIgnoreCase)));
+
+    private void ViewPdf(string url)
+    {
+        selectedPdfUrl = url;
+        showPdfModal = true;
+    }
+
+    private void ClosePdfModal() => showPdfModal = false;
+
+    private void OpenAddModal()
+    {
+        currentItem = new PeraturanModel
+        {
+            JenisMenu = activeTab,
+            PdfUrl = "document/Template_Risalah_2026.pdf"
+        };
+        isModalOpen = true;
+    }
+
+    private void EditItem(PeraturanModel item)
+    {
+        currentItem = new PeraturanModel
+        {
+            Id = item.Id,
+            JenisMenu = item.JenisMenu,
+            NomorPeraturan = item.NomorPeraturan,
+            JudulPeraturan = item.JudulPeraturan,
+            Instansi = item.Instansi,
+            TahunTerbit = item.TahunTerbit,
+            Status = item.Status,
+            PdfUrl = item.PdfUrl
+        };
+        isModalOpen = true;
+    }
+
+    private void CloseModal() => isModalOpen = false;
+
+    private void SaveItem()
+    {
+        if (currentItem.Id == 0)
+        {
+            currentItem.Id = allItems.Any() ? allItems.Max(x => x.Id) + 1 : 1;
+            allItems.Add(currentItem);
+        }
+        else
+        {
+            var idx = allItems.FindIndex(x => x.Id == currentItem.Id);
+            if (idx != -1) allItems[idx] = currentItem;
+        }
+        isModalOpen = false;
+    }
+
+    private void DeleteItem(int id) => allItems.RemoveAll(x => x.Id == id);
+}

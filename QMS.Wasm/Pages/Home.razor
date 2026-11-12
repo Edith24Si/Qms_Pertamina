@@ -1,66 +1,311 @@
-﻿@page "/"
+﻿@page "/dashboard"
+@implements IDisposable
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
 
-<div class="row">
-    <!-- Stat Box: Total Data List -->
-    <div class="col-sm-6 col-md-3">
-        <div class="row-stat dash">
-            <p class="row-stat-label">Total Data List</p>
-            <h3 class="row-stat-value">@totalDataList</h3>
-            <a href="documents" class="btn btn-success btn-xs">Files</a>
-        </div>
+<div id="qmsDashboardCarousel" class="carousel slide carousel-fade m-0 p-0 overflow-hidden shadow-sm" style="min-height: 750px;">
+
+    <!-- Carousel Indicators -->
+    <div class="carousel-indicators mb-4" style="z-index: 3;">
+        <button type="button" data-bs-target="#qmsDashboardCarousel" data-bs-slide-to="0" class="@(currentIndex == 0 ? "active bg-danger" : "bg-secondary")" aria-current="true" @onclick="() => GoToSlide(0)"></button>
+        <button type="button" data-bs-target="#qmsDashboardCarousel" data-bs-slide-to="1" class="@(currentIndex == 1 ? "active bg-danger" : "bg-secondary")" @onclick="() => GoToSlide(1)"></button>
+        <button type="button" data-bs-target="#qmsDashboardCarousel" data-bs-slide-to="2" class="@(currentIndex == 2 ? "active bg-danger" : "bg-secondary")" @onclick="() => GoToSlide(2)"></button>
+        <button type="button" data-bs-target="#qmsDashboardCarousel" data-bs-slide-to="3" class="@(currentIndex == 3 ? "active bg-danger" : "bg-secondary")" @onclick="() => GoToSlide(3)"></button>
+        <button type="button" data-bs-target="#qmsDashboardCarousel" data-bs-slide-to="4" class="@(currentIndex == 4 ? "active bg-danger" : "bg-secondary")" @onclick="() => GoToSlide(4)"></button>
     </div>
 
-    <!-- Stat Box: Total Employee & Admin -->
-    <div class="col-sm-6 col-md-3">
-        <div class="row-stat dash">
-            <p class="row-stat-label">Total Employee</p>
-            <h3 class="row-stat-value">@totalEmployee</h3>
-            <a href="employees" class="btn btn-warning btn-xs">Employee</a>
-            <h3 class="row-stat-value"> &nbsp;&nbsp;&amp;&nbsp;&nbsp; </h3><br>
-            <h3 class="row-stat-value">@totalAdmin</h3>
-            <a href="admins" class="btn btn-info btn-xs">Admin</a>
+    <!-- Carousel Inner -->
+    <div class="carousel-inner h-100">
+
+        <!-- Slide 0: Welcome / Kilang RU II Dumai -->
+        <div class="carousel-item h-100 position-relative @(currentIndex == 0 ? "active" : "")" style="min-height: 750px;">
+            <img src="assets/img/photos/PertaminaKilang.jpeg"
+                 alt="Pertamina Kilang RU II Dumai"
+                 class="w-100 h-100 object-fit-cover position-absolute top-0 start-0"
+                 style="object-position: center;" />
+
+            <div class="position-absolute top-0 start-0 p-4 p-md-5 w-100" style="background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.3) 60%, transparent 100%); z-index: 2;">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-danger text-white fw-semibold px-3 py-2">Portal Mutu</span>
+                    <span class="text-white-50">/</span>
+                    <span class="text-white-50 fw-medium">Subholding Downstream — RU II Dumai</span>
+                </div>
+                <h1 class="fw-bold text-white display-5 mb-0" style="letter-spacing: -0.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                    Quality Management System
+                </h1>
+            </div>
+
+            <div class="position-absolute bottom-0 start-0 p-4 p-md-5 w-100 d-flex justify-content-between align-items-end" style="background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, transparent 100%); z-index: 2;">
+                <div>
+                    <span class="badge bg-danger px-3 py-2 rounded-pill fw-semibold shadow-sm">RU II DUMAI</span>
+                </div>
+            </div>
         </div>
+
+        <!-- Slide 1: Kebijakan Mutu -->
+        <div class="carousel-item h-100 position-relative @(currentIndex == 1 ? "active" : "")" style="min-height: 750px;">
+            <img src="assets/img/photos/PertaminaKilang.jpeg" alt="Background Kilang" class="w-100 h-100 object-fit-cover position-absolute top-0 start-0" />
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0, 0, 0, 0.65); z-index: 1;"></div>
+
+            <div class="container-fluid px-4 px-md-5 py-5 h-100 d-flex align-items-center position-relative" style="z-index: 2;">
+                <div class="row align-items-center w-100 g-4 my-auto">
+                    <div class="col-lg-6 col-md-6 text-center">
+                        <div class="preview-box p-3 bg-white rounded-4 shadow-sm border d-inline-block position-relative zoom-hover-box" @onclick='() => OpenZoomModal("assets/img/KebijakanMutu_2026.jpeg", "Kebijakan Mutu RU II Dumai 2026")'>
+                            <img src="assets/img/KebijakanMutu_2026.jpeg"
+                                 alt="Kebijakan Mutu 2026"
+                                 class="img-fluid rounded border shadow-sm style-large-preview" />
+                            <div class="zoom-badge">
+                                <i class="fa fa-search-plus me-1"></i> Klik untuk Perbesar
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 text-start ps-lg-4 text-white">
+                        <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold text-uppercase mb-3 fs-6">
+                            <i class="fa fa-bullhorn me-1"></i> Pengumuman Berkas
+                        </span>
+
+                        <h1 class="fw-bold text-white mb-3 display-6">
+                            Kebijakan Mutu RU II Dumai 2026
+                        </h1>
+
+                        <p class="text-white-50 leading-relaxed mb-0 fs-5">
+                            Komitmen PT Pertamina Patra Niaga Refinery Unit II Dumai dalam mengolah minyak dan gas bumi menjadi produk berkualitas tinggi, mengutamakan keselamatan kerja, aspek K3LL, serta kepuasan pelanggan dan pemangku kepentingan.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 2: Kebijakan HSSE -->
+        <div class="carousel-item h-100 position-relative @(currentIndex == 2 ? "active" : "")" style="min-height: 750px;">
+            <img src="assets/img/photos/PertaminaKilang.jpeg" alt="Background Kilang" class="w-100 h-100 object-fit-cover position-absolute top-0 start-0" />
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0, 0, 0, 0.65); z-index: 1;"></div>
+
+            <div class="container-fluid px-4 px-md-5 py-5 h-100 d-flex align-items-center position-relative" style="z-index: 2;">
+                <div class="row align-items-center w-100 g-4 my-auto">
+                    <div class="col-lg-6 col-md-6 text-center">
+                        <div class="preview-box p-3 bg-white rounded-4 shadow-sm border d-inline-block position-relative zoom-hover-box" @onclick='() => OpenZoomModal("assets/img/KebijakanHSSE_2026.jpeg", "Kebijakan HSSE RU II Dumai 2026")'>
+                            <img src="assets/img/KebijakanHSSE_2026.jpeg" alt="Kebijakan HSSE 2026" class="img-fluid rounded border shadow-sm style-large-preview" />
+                            <div class="zoom-badge">
+                                <i class="fa fa-search-plus me-1"></i> Klik untuk Perbesar
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 text-start ps-lg-4 text-white">
+                        <span class="badge bg-danger text-white px-3 py-2 rounded-pill fw-bold text-uppercase mb-3 fs-6">
+                            <i class="fa fa-shield-alt me-1"></i> HSSE & Safety
+                        </span>
+                        <h1 class="fw-bold text-white mb-3 display-6">
+                            Kebijakan HSSE RU II Dumai 2026
+                        </h1>
+                        <p class="text-white-50 leading-relaxed mb-0 fs-5">
+                            Pedoman perlindungan aspek Kesehatan, Keselamatan Kerja, Keamanan, dan Pengelolaan Lingkungan Hidup di lingkungan operasi Kilang RU II Dumai.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 3: Kebijakan SMAP -->
+        <div class="carousel-item h-100 position-relative @(currentIndex == 3 ? "active" : "")" style="min-height: 750px;">
+            <img src="assets/img/photos/PertaminaKilang.jpeg" alt="Background Kilang" class="w-100 h-100 object-fit-cover position-absolute top-0 start-0" />
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0, 0, 0, 0.65); z-index: 1;"></div>
+
+            <div class="container-fluid px-4 px-md-5 py-5 h-100 d-flex align-items-center position-relative" style="z-index: 2;">
+                <div class="row align-items-center w-100 g-4 my-auto">
+                    <div class="col-lg-6 col-md-6 text-center">
+                        <div class="preview-box p-3 bg-white rounded-4 shadow-sm border d-inline-block position-relative zoom-hover-box" @onclick='() => OpenZoomModal("assets/img/KebijakanSMAP_2026.jpeg", "Kebijakan Anti Penyuapan 2026")'>
+                            <img src="assets/img/KebijakanSMAP_2026.jpeg" alt="Kebijakan SMAP 2026" class="img-fluid rounded border shadow-sm style-large-preview" />
+                            <div class="zoom-badge">
+                                <i class="fa fa-search-plus me-1"></i> Klik untuk Perbesar
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 text-start ps-lg-4 text-white">
+                        <span class="badge bg-info text-white px-3 py-2 rounded-pill fw-bold text-uppercase mb-3 fs-6">
+                            <i class="fa fa-balance-scale me-1"></i> SMAP & Integritas
+                        </span>
+                        <h1 class="fw-bold text-white mb-3 display-6">
+                            Kebijakan Anti Penyuapan 2026
+                        </h1>
+                        <p class="text-white-50 leading-relaxed mb-0 fs-5">
+                            Komitmen penerapan Good Corporate Governance (GCG) serta prinsip Nol Toleransi terhadap segala bentuk penyuapan dan gratifikasi.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 4: Kebijakan RU Dumai -->
+        <div class="carousel-item h-100 position-relative @(currentIndex == 4 ? "active" : "")" style="min-height: 750px;">
+            <img src="assets/img/photos/PertaminaKilang.jpeg" alt="Background Kilang" class="w-100 h-100 object-fit-cover position-absolute top-0 start-0" />
+            <div class="position-absolute top-0 start-0 w-100 h-100" style="background: rgba(0, 0, 0, 0.65); z-index: 1;"></div>
+
+            <div class="container-fluid px-4 px-md-5 py-5 h-100 d-flex align-items-center position-relative" style="z-index: 2;">
+                <div class="row align-items-center w-100 g-4 my-auto">
+                    <div class="col-lg-6 col-md-6 text-center">
+                        <div class="preview-box p-3 bg-white rounded-4 shadow-sm border d-inline-block position-relative zoom-hover-box" @onclick='() => OpenZoomModal("assets/img/KebijakanRUDumai_2026_1.jpeg", "Kebijakan Strategis RU II Dumai 2026")'>
+                            <img src="assets/img/KebijakanRUDumai_2026_1.jpeg" alt="Kebijakan RU Dumai 2026" class="img-fluid rounded border shadow-sm style-large-preview" />
+                            <div class="zoom-badge">
+                                <i class="fa fa-search-plus me-1"></i> Klik untuk Perbesar
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6 col-md-6 text-start ps-lg-4 text-white">
+                        <span class="badge bg-success text-white px-3 py-2 rounded-pill fw-bold text-uppercase mb-3 fs-6">
+                            <i class="fa fa-industry me-1"></i> Kebijakan Kilang
+                        </span>
+                        <h1 class="fw-bold text-white mb-3 display-6">
+                            Kebijakan Strategis RU II Dumai 2026
+                        </h1>
+                        <p class="text-white-50 leading-relaxed mb-0 fs-5">
+                            Arah kebijakan operasional, keunggulan keandalan kilang, dan pengembangan keberlanjutan unit operasi RU II Dumai.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- Stat Box: New Gugus -->
-    <div class="col-sm-6 col-md-3">
-        <div class="row-stat dash">
-            <p class="row-stat-label">New Gugus</p>
-            <h3 class="row-stat-value">@newGugus</h3>
-            <a href="gugus/acc" class="btn btn-primary btn-xs">New Gugus</a>
-        </div>
-    </div>
-</div> <!-- /.row -->
-
-<hr>
-
-<div class="row">
-    <div class="col-md-12">
-        <div class="portlet">
-            <div class="portlet-header">
-                <h3><i class="fa fa-bar-chart-o"></i> Dashboard - @username</h3>
-            </div> <!-- /.portlet-header -->
-
-            <div class="portlet-content" id="content-center">
-                <br>
-                <center><p>Selamat datang di Admin Page website Quality Management System</p></center>
-            </div> <!-- /.portlet-content -->
-        </div> <!-- /.portlet -->
-    </div> <!-- /.col -->
+    <!-- Tombol Navigasi Carousel -->
+    <button class="carousel-control-prev" type="button" @onclick="PrevSlide" style="z-index: 3;">
+        <span class="carousel-control-prev-icon filter-white" aria-hidden="true"></span>
+        <span class="visually-hidden">Previous</span>
+    </button>
+    <button class="carousel-control-next" type="button" @onclick="NextSlide" style="z-index: 3;">
+        <span class="carousel-control-next-icon filter-white" aria-hidden="true"></span>
+        <span class="visually-hidden">Next</span>
+    </button>
 </div>
 
-@code {
-    // Variable placeholder sementara sebelum dihubungkan ke QMS.Api / Database
-    private int totalDataList = 0;
-    private int totalEmployee = 0;
-    private int totalAdmin = 0;
-    private int newGugus = 0;
-    private string username = "Administrator";
+<!-- Modal Zoom Gambar Besar -->
+@if (isZoomModalOpen)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0, 0, 0, 0.85); z-index: 9999;" @onclick="CloseZoomModal">
+        <div class="modal-dialog modal-dialog-centered modal-xl" @onclick:stopPropagation="true">
+            <div class="modal-content bg-transparent border-0">
+                <div class="modal-header border-0 pb-0 justify-content-between align-items-center">
+                    <h5 class="modal-title text-white fw-bold">@zoomTitle</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseZoomModal"></button>
+                </div>
+                <div class="modal-body text-center p-2">
+                    <img src="@zoomImgUrl" class="img-fluid rounded shadow-lg" style="max-height: 85vh; object-fit: contain;" />
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
-    protected override async Task OnInitializedAsync()
+<style>
+    .preview-box {
+        background-color: #ffffff;
+        width: 100%;
+        max-width: 520px;
+        margin: 0 auto;
+    }
+
+    .zoom-hover-box {
+        cursor: pointer;
+        transition: transform 0.3s ease;
+    }
+
+        .zoom-hover-box:hover {
+            transform: scale(1.02);
+        }
+
+    .zoom-badge {
+        position: absolute;
+        bottom: 12px;
+        right: 12px;
+        background: rgba(220, 53, 69, 0.9);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+
+    .style-large-preview {
+        max-height: 650px !important;
+        width: 100% !important;
+        height: auto !important;
+        object-fit: contain;
+    }
+
+    .filter-white {
+        filter: brightness(0) invert(1);
+    }
+</style>
+
+@code {
+    private int currentIndex = 0;
+    private int totalSlides = 5;
+    private System.Threading.Timer? timer;
+
+    // Variabel Modal Zoom
+    private bool isZoomModalOpen = false;
+    private string zoomImgUrl = "";
+    private string zoomTitle = "";
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        // Nanti di sini kita panggil Endpoint API backend:
-        // totalDataList = await Http.GetFromJsonAsync<int>("api/dashboard/total-files");
-        await Task.CompletedTask;
+        if (firstRender)
+        {
+            var isLoggedIn = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
+            if (isLoggedIn != "true")
+            {
+                Navigation.NavigateTo("/login", forceLoad: true);
+            }
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        timer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(() =>
+            {
+                if (!isZoomModalOpen) // Pause timer slider jika sedang nge-zoom
+                {
+                    NextSlide();
+                    StateHasChanged();
+                }
+            });
+        }, null, 4000, 4000);
+    }
+
+    private void NextSlide()
+    {
+        currentIndex = (currentIndex + 1) % totalSlides;
+    }
+
+    private void PrevSlide()
+    {
+        currentIndex = (currentIndex - 1 + totalSlides) % totalSlides;
+    }
+
+    private void GoToSlide(int index)
+    {
+        currentIndex = index;
+    }
+
+    private void OpenZoomModal(string imgUrl, string title)
+    {
+        zoomImgUrl = imgUrl;
+        zoomTitle = title;
+        isZoomModalOpen = true;
+    }
+
+    private void CloseZoomModal()
+    {
+        isZoomModalOpen = false;
+    }
+
+    public void Dispose()
+    {
+        timer?.Dispose();
     }
 }

@@ -1,38 +1,300 @@
-﻿@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject QMS.Services.UserState UserState
+@implements IDisposable
 
-<div class="mainbar">
-    <div class="container">
-        <button type="button" class="btn mainbar-toggle" data-toggle="collapse" data-target=".mainbar-collapse">
-            <i class="fa fa-bars"></i>
+<nav class="navbar navbar-expand-lg navbar-dark p-0">
+    <div class="container-xl px-0 d-flex justify-content-between align-items-center">
+
+        <!-- Tombol Toggler Mobile -->
+        <button class="navbar-toggler ms-auto border-0 shadow-none py-2 text-white" type="button" data-bs-toggle="collapse" data-bs-target="#navbarQMS">
+            <span class="navbar-toggler-icon"></span>
         </button>
 
-        <div class="mainbar-collapse collapse">
-            <ul class="nav navbar-nav mainbar-nav">
-                <li>
-                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                        <i class="fa fa-dashboard"></i> Dashboard
+        <div class="collapse navbar-collapse justify-content-start" id="navbarQMS">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 align-items-center flex-wrap qms-nav-list">
+
+                <!-- 1. Beranda -->
+                <li class="nav-item">
+                    <NavLink class="nav-link qms-nav-link" href="dashboard" Match="NavLinkMatch.All" @onclick="CloseDropdowns">
+                        Beranda
                     </NavLink>
                 </li>
-                <li>
-                    <NavLink class="nav-link" href="documents">
-                        <i class="fa fa-file-text"></i> Dokumen
+
+                <!-- 2. Dokumen Mutu -->
+                <li class="nav-item">
+                    <NavLink class="nav-link qms-nav-link" href="documents" @onclick="CloseDropdowns">
+                        Dokumen Mutu
                     </NavLink>
                 </li>
-                <li>
-                    <NavLink class="nav-link" href="quality-objective">
-                        <i class="fa fa-tasks"></i> Sasaran Mutu
-                    </NavLink>
-                </li>
-                <li class="dropdown">
-                    <a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown">
-                        <i class="fa fa-bar-chart-o"></i> Laporan <b class="caret"></b>
+
+                <!-- 3. CIP (Dropdown) -->
+                <li class="nav-item dropdown position-relative">
+                    <a class="nav-link qms-nav-link dropdown-toggle @(openDropdown == "cip" ? "active" : "")" 
+                       role="button" 
+                       @onclick='() => ToggleDropdown("cip")' 
+                       @onclick:stopPropagation="true">
+                        CIP
                     </a>
-                    <ul class="dropdown-menu">
-                        <li><NavLink href="reports/monthly">Laporan Bulanan</NavLink></li>
-                        <li><NavLink href="reports/audit">Laporan Audit</NavLink></li>
+                    <ul class="dropdown-menu shadow-lg border-0 rounded-3 mt-1 py-1 @(openDropdown == "cip" ? "show" : "")"
+                        style="@(openDropdown == "cip" ? "display: block; position: absolute;" : "")">
+                        <li><NavLink class="dropdown-item py-1.5" href="cip/panduan" Match="NavLinkMatch.All" @onclick="CloseDropdowns">Panduan CIP</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="cip/contoh" Match="NavLinkMatch.All" @onclick="CloseDropdowns">Contoh CIP</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="cip/klinik" Match="NavLinkMatch.All" @onclick="CloseDropdowns">Klinik CIP</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="cip/calendar" Match="NavLinkMatch.All" @onclick="CloseDropdowns">Calendar of Event</NavLink></li>
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li><NavLink class="dropdown-item py-1.5 text-danger fw-semibold" href="cip/gugus" Match="NavLinkMatch.All" @onclick="CloseDropdowns">Gugus Mutu</NavLink></li>
+                    </ul>
+                </li>
+
+                <!-- 4. Sistem Manajemen (Dropdown) -->
+                <li class="nav-item dropdown position-relative">
+                    <a class="nav-link qms-nav-link dropdown-toggle @(openDropdown == "sm" ? "active" : "")" 
+                       role="button" 
+                       @onclick='() => ToggleDropdown("sm")' 
+                       @onclick:stopPropagation="true">
+                        Sistem Manajemen
+                    </a>
+                    <ul class="dropdown-menu shadow-lg border-0 rounded-3 mt-1 py-1 @(openDropdown == "sm" ? "show" : "")"
+                        style="@(openDropdown == "sm" ? "display: block; position: absolute;" : "")">
+                        <li><NavLink class="dropdown-item py-1.5" href="sm/requirement" @onclick="CloseDropdowns">Persyaratan (Requirement)</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="sm/internal-audit" @onclick="CloseDropdowns">Internal Audit</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="sm/eksternal-audit" @onclick="CloseDropdowns">Eksternal Audit</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="sm/hiradc" @onclick="CloseDropdowns">HIRADC</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="sm/catatan-rekaman" @onclick="CloseDropdowns">Catatan / Rekaman</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="sm/rtm" @onclick="CloseDropdowns">Rapat Tinjauan Manajemen</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="sm/proses-bisnis" @onclick="CloseDropdowns">Proses Bisnis</NavLink></li>
+                    </ul>
+                </li>
+
+                <!-- 5. SP & SK (Dropdown) -->
+                <li class="nav-item dropdown position-relative">
+                    <a class="nav-link qms-nav-link dropdown-toggle @(openDropdown == "spsk" ? "active" : "")" 
+                       role="button" 
+                       @onclick='() => ToggleDropdown("spsk")' 
+                       @onclick:stopPropagation="true">
+                        SP &amp; SK
+                    </a>
+                    <ul class="dropdown-menu shadow-lg border-0 rounded-3 mt-1 py-1 @(openDropdown == "spsk" ? "show" : "")"
+                        style="@(openDropdown == "spsk" ? "display: block; position: absolute;" : "")">
+                        <li>
+                            <NavLink class="dropdown-item py-1.5" href="spsk/sp" @onclick="CloseDropdowns">
+                                Surat Perintah (SP)
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink class="dropdown-item py-1.5" href="spsk/sk" @onclick="CloseDropdowns">
+                                Surat Keputusan (SK)
+                            </NavLink>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- 6. Data Pegawai -->
+                <li class="nav-item">
+                    <NavLink class="nav-link qms-nav-link" href="pegawai" @onclick="CloseDropdowns">
+                        Data Pegawai
+                    </NavLink>
+                </li>
+
+                <!-- 7. Sasaran Mutu -->
+                <li class="nav-item">
+                    <NavLink class="nav-link qms-nav-link" href="sasaran-mutu" @onclick="CloseDropdowns">
+                        Sasaran Mutu
+                    </NavLink>
+                </li>
+
+                <!-- 8. User (KHUSUS ADMINISTRATOR - HILANG UNTUK USER BIASA) -->
+                @if (isAdmin)
+                {
+                    <li class="nav-item">
+                        <NavLink class="nav-link qms-nav-link" href="users" @onclick="CloseDropdowns">
+                            User
+                        </NavLink>
+                    </li>
+                }
+
+                <!-- 9. KKEP-PQA (Dropdown) -->
+                <li class="nav-item dropdown position-relative">
+                    <a class="nav-link qms-nav-link dropdown-toggle @(openDropdown == "kkep" ? "active" : "")" 
+                       role="button" 
+                       @onclick='() => ToggleDropdown("kkep")' 
+                       @onclick:stopPropagation="true">
+                        KKEP-PQA
+                    </a>
+                    <ul class="dropdown-menu shadow-lg border-0 rounded-3 mt-1 py-1 @(openDropdown == "kkep" ? "show" : "")"
+                        style="@(openDropdown == "kkep" ? "display: block; position: absolute;" : "")">
+                        <li><NavLink class="dropdown-item py-1.5" href="kkep/ofi-to-afi" @onclick="CloseDropdowns">OFI to AFI</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="kkep/evidence" @onclick="CloseDropdowns">Evidence</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="kkep/buku-kkep" @onclick="CloseDropdowns">Buku KKEP</NavLink></li>
+                        <li><NavLink class="dropdown-item py-1.5" href="kkep/score" @onclick="CloseDropdowns">Score</NavLink></li>
+                    </ul>
+                </li>
+
+                <!-- 10. KOMET -->
+                <li class="nav-item">
+                    <NavLink class="nav-link qms-nav-link" href="komet/dashboard" @onclick="CloseDropdowns">
+                        KOMET
+                    </NavLink>
+                </li>
+
+                <!-- 11. Peraturan (Dropdown) -->
+                <li class="nav-item dropdown position-relative">
+                    <a class="nav-link qms-nav-link dropdown-toggle @(openDropdown == "peraturan" ? "active" : "")" 
+                       role="button" 
+                       @onclick='() => ToggleDropdown("peraturan")' 
+                       @onclick:stopPropagation="true">
+                        Peraturan
+                    </a>
+                    <ul class="dropdown-menu shadow-lg border-0 rounded-3 mt-1 py-1 @(openDropdown == "peraturan" ? "show" : "")"
+                        style="@(openDropdown == "peraturan" ? "display: block; position: absolute;" : "")">
+                        <li>
+                            <NavLink class="dropdown-item py-1.5" href="peraturan/evaluasi" @onclick="CloseDropdowns">
+                                Evaluasi Pematuhan
+                            </NavLink>
+                        </li>
+                        <li>
+                            <NavLink class="dropdown-item py-1.5" href="peraturan/daftar" @onclick="CloseDropdowns">
+                                Daftar Peraturan
+                            </NavLink>
+                        </li>
                     </ul>
                 </li>
             </ul>
-        </div> <!-- /.mainbar-collapse -->
-    </div> <!-- /.container -->
-</div> <!-- /.mainbar -->
+
+            <!-- Mobile STK Link -->
+            <div class="d-lg-none my-2 pt-2 border-top border-white border-opacity-10 w-100">
+                <a href="https://youtu.be/ag7MoapQjAE?si=0lOGpNRP-Akrzi0A" target="_blank" rel="noopener noreferrer" 
+                   class="btn btn-warning w-100 rounded-pill fw-bold text-dark py-2 small">
+                    Masuk STK
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<style>
+    /* Desain Elegan, Kompak, Tanpa Icon, Tidak Terlalu Lebar */
+    .qms-nav-list {
+        gap: 2px;
+    }
+
+    .qms-nav-link {
+        color: rgba(255, 255, 255, 0.90) !important;
+        font-size: 0.835rem;
+        font-weight: 500;
+        letter-spacing: 0.25px;
+        padding: 8px 12px !important;
+        border-radius: 6px;
+        transition: all 0.18s ease;
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .qms-nav-link:hover {
+        color: #ffffff !important;
+        background-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .qms-nav-link.active {
+        color: #ffffff !important;
+        background-color: rgba(0, 0, 0, 0.22);
+        font-weight: 600;
+        box-shadow: inset 0 -2px 0 #ffffff;
+    }
+
+    /* Support Hover di Layar Desktop (Mudah Diakses Langsung) */
+    @@media (min-width: 992px) {
+        .nav-item.dropdown:hover > .dropdown-menu {
+            display: block !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+    }
+
+    .dropdown-menu {
+        background-color: #ffffff;
+        min-width: 205px;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 8px;
+        z-index: 1060;
+    }
+
+    .dropdown-item {
+        font-size: 0.82rem;
+        color: #334155;
+        padding: 8px 16px;
+        font-weight: 500;
+        transition: all 0.14s ease;
+    }
+
+    .dropdown-item:hover {
+        background-color: #fee2e2;
+        color: #dc2626;
+        padding-left: 20px;
+    }
+
+    .dropdown-divider {
+        border-top: 1px solid #f1f5f9;
+    }
+</style>
+
+@code {
+    private string? openDropdown = null;
+    private bool isAdmin = false;
+
+    protected override void OnInitialized()
+    {
+        UserState.OnChange += HandleUserStateChanged;
+        Navigation.LocationChanged += HandleLocationChanged;
+    }
+
+    public void Dispose()
+    {
+        UserState.OnChange -= HandleUserStateChanged;
+        Navigation.LocationChanged -= HandleLocationChanged;
+    }
+
+    private void HandleUserStateChanged()
+    {
+        isAdmin = UserState.IsAdmin;
+        StateHasChanged();
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        openDropdown = null;
+        StateHasChanged();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var role = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+            isAdmin = !string.IsNullOrEmpty(role) && 
+                      (role.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || 
+                       role.Equals("Admin", StringComparison.OrdinalIgnoreCase));
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleDropdown(string name)
+    {
+        if (openDropdown == name)
+        {
+            openDropdown = null;
+        }
+        else
+        {
+            openDropdown = name;
+        }
+    }
+
+    private void CloseDropdowns()
+    {
+        openDropdown = null;
+    }
+}

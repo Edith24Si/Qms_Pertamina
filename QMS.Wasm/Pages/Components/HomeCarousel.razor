@@ -1,0 +1,118 @@
+﻿<div class="container my-4">
+    <!-- Wrapper utama dengan background abu-abu terang modern -->
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden bg-light position-relative">
+
+        <div id="documentCarousel" class="carousel slide" data-bs-ride="carousel">
+
+            <!-- Indicators / Titik Navigasi -->
+            <div class="carousel-indicators mb-3">
+                <button type="button" data-bs-target="#documentCarousel" data-bs-slide-to="0" class="active bg-danger" aria-current="true"></button>
+                <button type="button" data-bs-target="#documentCarousel" data-bs-slide-to="1" class="bg-danger"></button>
+            </div>
+
+            <!-- Carousel Inner -->
+            <div class="carousel-inner py-4 px-3">
+
+                <!-- Slide 1 -->
+                <div class="carousel-item active">
+                    <div class="row align-items-center justify-content-center g-4">
+                        <!-- Tampilan Preview Dokumen -->
+                        <div class="col-md-5 col-lg-4 text-center">
+                            <div class="document-preview-wrapper shadow-lg rounded-3 bg-white p-2 d-inline-block position-relative">
+                                <img src="assets/img/smap-2026.jpg" class="img-fluid rounded border" alt="Kebijakan SMAP" style="max-height: 420px; width: auto;" />
+                            </div>
+                        </div>
+
+                        <!-- Informasi Dokumen -->
+                        <div class="col-md-6 col-lg-5">
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2 rounded-pill fw-semibold mb-2">
+                                <i class="fa fa-shield-alt me-1"></i> SMAP & INTEGRITAS
+                            </span>
+                            <h3 class="fw-bold text-dark mt-2 mb-3">
+                                Kebijakan Sistem Manajemen Anti Penyuapan 2026
+                            </h3>
+                            <p class="text-muted small lh-lg">
+                                Komitmen PT Pertamina Patra Niaga Refinery Unit II Dumai dalam menerapkan prinsip Good Corporate Governance (GCG) serta melarang segala bentuk penyuapan dan gratifikasi.
+                            </p>
+                            <div class="d-flex gap-2 mt-4">
+                                <a href="document/smap-2026.pdf" target="_blank" class="btn btn-danger px-4 py-2 rounded-pill shadow-sm fw-medium">
+                                    <i class="fa fa-file-pdf me-2"></i> Detail SMAP
+                                </a>
+                                <a href="document/smap-2026.pdf" download class="btn btn-outline-secondary px-3 py-2 rounded-pill fw-medium">
+                                    <i class="fa fa-download me-1"></i> Unduh
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2 (Opsional) -->
+                <div class="carousel-item">
+                    <div class="row align-items-center justify-content-center g-4">
+                        <div class="col-md-5 col-lg-4 text-center">
+                            <div class="document-preview-wrapper shadow-lg rounded-3 bg-white p-2 d-inline-block">
+                                <img src="assets/img/pedoman-qms.jpg" class="img-fluid rounded border" alt="Pedoman QMS" style="max-height: 420px; width: auto;" />
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-lg-5">
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fw-semibold mb-2">
+                                <i class="fa fa-book me-1"></i> STANDAR MANAJEMEN
+                            </span>
+                            <h3 class="fw-bold text-dark mt-2 mb-3">
+                                Pedoman Quality Management System
+                            </h3>
+                            <p class="text-muted small lh-lg">
+                                Panduan standar operasional dan tata kelola mutu yang berlaku di lingkungan Pertamina RU II Dumai.
+                            </p>
+                            <div class="d-flex gap-2 mt-4">
+                                <a href="document/pedoman-qms.pdf" target="_blank" class="btn btn-danger px-4 py-2 rounded-pill shadow-sm fw-medium">
+                                    <i class="fa fa-file-pdf me-2"></i> Lihat Pedoman
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Tombol Navigasi Kiri & Kanan -->
+            <button class="carousel-control-prev custom-carousel-btn" type="button" data-bs-target="#documentCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon bg-danger rounded-circle p-3" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next custom-carousel-btn" type="button" data-bs-target="#documentCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon bg-danger rounded-circle p-3" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Styling Tambahan agar Tampilan Profesional */
+    .document-preview-wrapper {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        background-color: #ffffff;
+    }
+
+        .document-preview-wrapper:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important;
+        }
+
+    .custom-carousel-btn {
+        width: 5%;
+        opacity: 0.8;
+    }
+
+        .custom-carousel-btn:hover {
+            opacity: 1;
+        }
+
+    .carousel-control-prev-icon,
+    .carousel-control-next-icon {
+        background-size: 50% 50%;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+</style>

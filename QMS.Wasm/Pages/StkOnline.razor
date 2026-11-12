@@ -1,0 +1,46 @@
+@page "/stk-online"
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-7 text-center">
+            <div class="card border-0 shadow-sm rounded-4 p-5">
+                <div class="mb-4">
+                    <div class="stk-icon-circle mx-auto">
+                        <i class="fa fa-play text-danger fs-2 ms-1"></i>
+                    </div>
+                </div>
+
+                <h3 class="fw-bold text-dark mb-2">Sistem Tata Kerja (STK) Pertamina</h3>
+                <p class="text-muted mb-4">
+                    Akses portal Syarat dan Tata Kerja (STK) dialihkan ke tautan resmi video sosialisasi dan panduan tata kerja Pertamina.
+                </p>
+
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="https://youtu.be/ag7MoapQjAE?si=0lOGpNRP-Akrzi0A" 
+                       target="_blank" 
+                       rel="noopener noreferrer" 
+                       class="btn btn-danger rounded-pill px-4 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2">
+                        <i class="fa fa-external-link-alt"></i>
+                        <span>Buka Masuk STK Sekarang</span>
+                    </a>
+                    <NavLink href="dashboard" class="btn btn-light rounded-pill px-4 py-2 fw-semibold">
+                        Kembali ke Beranda
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stk-icon-circle {
+        width: 80px;
+        height: 80px;
+        background-color: #fee2e2;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+</style>

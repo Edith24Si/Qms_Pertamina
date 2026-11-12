@@ -1,0 +1,210 @@
+@page "/cip/contoh"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="container-fluid px-4 px-lg-5 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="fw-bold text-dark mb-1">
+                <i class="fa fa-file-alt text-danger me-2"></i>Contoh Risalah CIP
+            </h4>
+            <p class="text-muted small mb-0">Arsip contoh risalah inovasi mutu terbaik Pertamina RU II Dumai</p>
+        </div>
+        @if (isAdmin)
+        {
+            <button class="btn btn-danger btn-sm rounded-pill px-4 fw-semibold shadow-sm" @onclick="OpenAddModal">
+                <i class="fa fa-plus me-1"></i> Tambah Contoh
+            </button>
+        }
+    </div>
+
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-light p-2">
+        <div class="input-group">
+            <span class="input-group-text bg-transparent border-0 text-muted"><i class="fa fa-search"></i></span>
+            <input type="text" class="form-control bg-transparent border-0" placeholder="Cari contoh risalah inovasi..." @bind="searchQuery" @bind:event="oninput" />
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                        <tr class="small text-uppercase text-secondary">
+                            <th class="ps-4 py-3" style="width: 50px;">No</th>
+                            <th class="py-3">Judul Risalah Inovasi</th>
+                            <th class="py-3">Fungsi / Unit</th>
+                            <th class="py-3 text-center">Metode</th>
+                            <th class="py-3 text-center">Tahun</th>
+                            <th class="text-center pe-4 py-3" style="min-width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredList.Any())
+                        {
+                            int no = 1;
+                            @foreach (var item in FilteredList)
+                            {
+                                <tr>
+                                    <td class="ps-4 small text-muted">@(no++)</td>
+                                    <td class="fw-semibold text-dark">@item.Judul</td>
+                                    <td>@item.Fungsi</td>
+                                    <td class="text-center"><span class="badge bg-danger-subtle text-danger">@item.Metode</span></td>
+                                    <td class="text-center"><span class="badge bg-light text-dark border">@item.Tahun</span></td>
+                                    <!-- Aksi: User (View & Unduh), Admin (Semua) -->
+                                    <td class="text-center pe-4">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <a href="document/Template_Risalah_2026.pdf" target="_blank" class="btn btn-icon btn-soft-primary" title="Lihat Contoh Risalah">
+                                                <i class="fa fa-eye"></i>
+                                            </a>
+                                            <a href="document/Template_Risalah_2026.pdf" download target="_blank" class="btn btn-icon btn-soft-info" title="Unduh Berkas">
+                                                <i class="fa fa-download"></i>
+                                            </a>
+
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" title="Edit Contoh" @onclick="() => EditItem(item)">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-soft-danger" title="Hapus Contoh" @onclick="() => DeleteItem(item.Id)">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="6" class="text-center py-4 text-muted">Data tidak ditemukan.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (isModalOpen && isAdmin)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-4 shadow">
+                <div class="modal-header border-0 pt-4 px-4 pb-0">
+                    <h5 class="modal-title fw-bold">@(currentItem.Id == 0 ? "Tambah" : "Edit") Contoh Risalah</h5>
+                    <button type="button" class="btn-close" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Judul Risalah *</label>
+                        <input type="text" class="form-control" @bind="currentItem.Judul" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Fungsi / Unit</label>
+                        <input type="text" class="form-control" @bind="currentItem.Fungsi" />
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Metode</label>
+                            <input type="text" class="form-control" @bind="currentItem.Metode" placeholder="PCP / FT-PCP / RT-PCP" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label small fw-bold">Tahun</label>
+                            <input type="number" class="form-control" @bind="currentItem.Tahun" />
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <button class="btn btn-light rounded-pill px-4" @onclick="CloseModal">Batal</button>
+                        <button class="btn btn-danger rounded-pill px-4 fw-semibold" @onclick="SaveItem">Simpan Data</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .btn-icon {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        border: none;
+        transition: all 0.2s ease;
+        font-size: 0.82rem;
+    }
+    .btn-icon:hover { transform: translateY(-2px); }
+    .btn-soft-primary { background-color: #e0f2fe; color: #0284c7; }
+    .btn-soft-primary:hover { background-color: #0284c7; color: #ffffff; }
+    .btn-soft-info { background-color: #ecfdf5; color: #059669; }
+    .btn-soft-info:hover { background-color: #059669; color: #ffffff; }
+    .btn-soft-warning { background-color: #fef3c7; color: #d97706; }
+    .btn-soft-warning:hover { background-color: #d97706; color: #ffffff; }
+    .btn-soft-danger { background-color: #fee2e2; color: #dc2626; }
+    .btn-soft-danger:hover { background-color: #dc2626; color: #ffffff; }
+</style>
+
+@code {
+    public class ContohModel
+    {
+        public int Id { get; set; }
+        public string Judul { get; set; } = "";
+        public string Fungsi { get; set; } = "";
+        public string Metode { get; set; } = "PCP";
+        public int Tahun { get; set; } = 2026;
+    }
+
+    private List<ContohModel> items = new()
+    {
+        new ContohModel { Id = 1, Judul = "Optimasi Konsumsi Energi Reboiler pada Unit Distilasi", Fungsi = "Production / Processing", Metode = "PCP", Tahun = 2025 },
+        new ContohModel { Id = 2, Judul = "Digitalisasi Monitoring Vibro Pump Menggunakan IoT", Fungsi = "Maintenance / Reliability", Metode = "FT-PCP", Tahun = 2026 },
+        new ContohModel { Id = 3, Judul = "Pengurangan Downtime Loading Master Berbasis Lean", Fungsi = "Logistics", Metode = "I-PCP", Tahun = 2025 }
+    };
+
+    private string searchQuery = "";
+    private bool isModalOpen = false;
+    private bool isAdmin = false;
+    private ContohModel currentItem = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole");
+            isAdmin = userRole?.Equals("Administrator", StringComparison.OrdinalIgnoreCase) == true ||
+                      userRole?.Equals("Admin", StringComparison.OrdinalIgnoreCase) == true;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<ContohModel> FilteredList =>
+        string.IsNullOrWhiteSpace(searchQuery)
+        ? items
+        : items.Where(x => x.Judul.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                           x.Fungsi.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private void OpenAddModal() { currentItem = new ContohModel { Tahun = DateTime.Now.Year }; isModalOpen = true; }
+    private void EditItem(ContohModel item) { currentItem = new ContohModel { Id = item.Id, Judul = item.Judul, Fungsi = item.Fungsi, Metode = item.Metode, Tahun = item.Tahun }; isModalOpen = true; }
+    private void CloseModal() => isModalOpen = false;
+
+    private void SaveItem()
+    {
+        if (currentItem.Id == 0)
+        {
+            currentItem.Id = items.Any() ? items.Max(x => x.Id) + 1 : 1;
+            items.Add(currentItem);
+        }
+        else
+        {
+            var index = items.FindIndex(x => x.Id == currentItem.Id);
+            if (index != -1) items[index] = currentItem;
+        }
+        isModalOpen = false;
+    }
+
+    private void DeleteItem(int id) => items.RemoveAll(x => x.Id == id);
+}

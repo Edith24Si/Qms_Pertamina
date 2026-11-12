@@ -1,0 +1,268 @@
+@page "/sm/requirement"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+
+<div class="container py-4">
+    <div class="card shadow-sm border-0 rounded-3">
+        <!-- Header Card dengan Tombol Tambah (Hanya untuk Admin) -->
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h5 class="fw-bold mb-0 text-danger">
+                <i class="fa fa-tasks me-2"></i>Requirement / Persyaratan
+            </h5>
+            @if (isAdmin)
+            {
+                <button class="btn btn-danger btn-sm rounded-pill px-3" @onclick="OpenAddModal">
+                    <i class="fa fa-plus me-1"></i> Tambah Persyaratan
+                </button>
+            }
+        </div>
+
+        <div class="card-body">
+            <p class="text-muted mb-3">Daftar persyaratan dan standar Sistem Manajemen Mutu.</p>
+
+            <!-- Search Bar -->
+            <div class="mb-3">
+                <input type="text" class="form-control" placeholder="Cari standar / kode persyaratan..." @bind="searchQuery" @bind:event="oninput" />
+            </div>
+
+            <!-- Tabel Data -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>No</th>
+                            <th>Kode Standar</th>
+                            <th>Nama Standar</th>
+                            <th>Kategori</th>
+                            <th>Status Masa Berlaku</th>
+                            <th class="text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (FilteredList.Any())
+                        {
+                            int no = 1;
+                            @foreach (var item in FilteredList)
+                            {
+                                <tr>
+                                    <td>@(no++)</td>
+                                    <td class="fw-semibold">@item.Kode</td>
+                                    <td>@item.NamaStandar</td>
+                                    <td><span class="badge bg-secondary">@item.Kategori</span></td>
+                                    <td>
+                                        <span class="badge @(item.Status == "Aktif" ? "bg-success" : "bg-warning text-dark")">
+                                            @item.Status
+                                        </span>
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-inline-flex align-items-center gap-1">
+                                            <!-- Tombol VIEW -->
+                                            <button class="btn btn-icon btn-soft-primary" @onclick="() => ViewPdf(item.PdfUrl)" title="Lihat Dokumen">
+                                                <i class="fa fa-eye"></i>
+                                            </button>
+
+                                            <!-- Tombol UNDUH -->
+                                            <a href="@item.PdfUrl" download target="_blank" class="btn btn-icon btn-soft-info" title="Unduh Berkas">
+                                                <i class="fa fa-download"></i>
+                                            </a>
+
+                                            <!-- Tombol KHUSUS ADMIN (Edit, Hapus) -->
+                                            @if (isAdmin)
+                                            {
+                                                <button class="btn btn-icon btn-soft-warning" @onclick="() => EditItem(item)" title="Edit">
+                                                    <i class="fa fa-pencil fa-pen"></i>
+                                                </button>
+                                                <button class="btn btn-icon btn-soft-danger" @onclick="() => DeleteItem(item.Id)" title="Hapus">
+                                                    <i class="fa fa-trash fa-trash-alt"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center py-3 text-muted">Data tidak ditemukan.</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Form Tambah/Edit (Hanya untuk Admin) -->
+@if (isModalOpen && isAdmin)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.5);" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 rounded-3 shadow">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">@(currentItem.Id == 0 ? "Tambah" : "Edit") Persyaratan</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CloseModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Kode</label>
+                            <input type="text" class="form-control" @bind="currentItem.Kode" placeholder="ISO 9001:2015" />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Nama Standar</label>
+                            <input type="text" class="form-control" @bind="currentItem.NamaStandar" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Kategori</label>
+                            <input type="text" class="form-control" @bind="currentItem.Kategori" placeholder="SMM / SML / SMK3" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Status</label>
+                            <select class="form-select" @bind="currentItem.Status">
+                                <option value="Aktif">Aktif</option>
+                                <option value="Revisi">Dalam Revisi</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label fw-bold">Path / Link PDF</label>
+                        <input type="text" class="form-control" @bind="currentItem.PdfUrl" placeholder="assets/docs/namafile.pdf" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" @onclick="CloseModal">Batal</button>
+                    <button class="btn btn-danger" @onclick="SaveItem">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Modal Preview PDF (Khusus View - Toolbar Download disembunyikan) -->
+@if (showPdfModal)
+{
+    <div class="modal fade show d-block" style="background: rgba(0,0,0,0.6); z-index: 1050;" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content border-0 rounded-3 shadow-lg">
+                <div class="modal-header bg-light">
+                    <h5 class="modal-title fw-bold text-dark">
+                        <i class="fa fa-file-pdf text-danger me-2"></i> Viewer Dokumen Persyaratan
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="ClosePdfModal"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <iframe src="@($"{selectedPdfUrl}#toolbar=0&navpanes=0")" 
+                            width="100%" 
+                            height="650px" 
+                            style="border: none;">
+                    </iframe>
+                </div>
+                <div class="modal-footer bg-light py-2">
+                    <button type="button" class="btn btn-secondary rounded-pill px-4" @onclick="ClosePdfModal">Tutup</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    public class RequirementModel
+    {
+        public int Id { get; set; }
+        public string Kode { get; set; } = "";
+        public string NamaStandar { get; set; } = "";
+        public string Kategori { get; set; } = "";
+        public string Status { get; set; } = "Aktif";
+        public string PdfUrl { get; set; } = "assets/docs/sample.pdf";
+    }
+
+    private List<RequirementModel> items = new()
+    {
+        new RequirementModel { Id = 1, Kode = "ISO 9001:2015", NamaStandar = "Sistem Manajemen Mutu", Kategori = "SMM", Status = "Aktif", PdfUrl = "assets/docs/ISO9001.pdf" },
+        new RequirementModel { Id = 2, Kode = "ISO 14001:2015", NamaStandar = "Sistem Manajemen Lingkungan", Kategori = "SML", Status = "Aktif", PdfUrl = "assets/docs/ISO14001.pdf" },
+        new RequirementModel { Id = 3, Kode = "ISO 45001:2018", NamaStandar = "Sistem Manajemen K3", Kategori = "SMK3", Status = "Aktif", PdfUrl = "assets/docs/ISO45001.pdf" },
+        new RequirementModel { Id = 4, Kode = "ISO 50001:2018", NamaStandar = "Sistem Manajemen Energi", Kategori = "SME", Status = "Revisi", PdfUrl = "assets/docs/ISO50001.pdf" }
+    };
+
+    // Variable Role & Modal PDF
+    private bool isAdmin = false;
+    private string userRole = "User";
+    private string selectedPdfUrl = "";
+    private bool showPdfModal = false;
+
+    // Variable Search & Form
+    private string searchQuery = "";
+    private bool isModalOpen = false;
+    private RequirementModel currentItem = new();
+
+    // Membaca status role dari LocalStorage setelah component di-render
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            userRole = await JSRuntime.InvokeAsync<string>("localStorage.getItem", "userRole") ?? "User";
+            
+            isAdmin = userRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || 
+                      userRole.Equals("Admin", StringComparison.OrdinalIgnoreCase);
+
+            StateHasChanged();
+        }
+    }
+
+    // Modal Viewer PDF Methods
+    private void ViewPdf(string pdfUrl)
+    {
+        selectedPdfUrl = pdfUrl;
+        showPdfModal = true;
+    }
+
+    private void ClosePdfModal()
+    {
+        showPdfModal = false;
+    }
+
+    // Filter & CRUD Methods
+    private IEnumerable<RequirementModel> FilteredList =>
+        string.IsNullOrWhiteSpace(searchQuery)
+        ? items
+        : items.Where(x => x.NamaStandar.Contains(searchQuery, StringComparison.OrdinalIgnoreCase) ||
+                           x.Kode.Contains(searchQuery, StringComparison.OrdinalIgnoreCase));
+
+    private void OpenAddModal() { currentItem = new RequirementModel(); isModalOpen = true; }
+    
+    private void EditItem(RequirementModel item) 
+    { 
+        currentItem = new RequirementModel { 
+            Id = item.Id, 
+            Kode = item.Kode, 
+            NamaStandar = item.NamaStandar, 
+            Kategori = item.Kategori, 
+            Status = item.Status,
+            PdfUrl = item.PdfUrl
+        }; 
+        isModalOpen = true; 
+    }
+
+    private void CloseModal() => isModalOpen = false;
+
+    private void SaveItem()
+    {
+        if (currentItem.Id == 0)
+        {
+            currentItem.Id = items.Any() ? items.Max(x => x.Id) + 1 : 1;
+            items.Add(currentItem);
+        }
+        else
+        {
+            var index = items.FindIndex(x => x.Id == currentItem.Id);
+            if (index != -1) items[index] = currentItem;
+        }
+        isModalOpen = false;
+    }
+
+    private void DeleteItem(int id) => items.RemoveAll(x => x.Id == id);
+}

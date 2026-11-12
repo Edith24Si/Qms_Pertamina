@@ -1,0 +1,81 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "QMS.Api (.NET Core Launch)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-api",
+      "program": "${workspaceFolder}/QMS.Api/bin/Debug/net10.0/QMS.Api.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/QMS.Api",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    {
+      "name": "Backend (.NET Core Launch)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-backend",
+      "program": "${workspaceFolder}/Backend/bin/Debug/net10.0/Backend.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/Backend",
+      "stopAtEntry": false,
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+        "uriFormat": "%s/swagger"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    {
+      "name": "QMS.Wasm (Blazor WebAssembly)",
+      "type": "blazorwasm",
+      "request": "launch",
+      "preLaunchTask": "build-wasm",
+      "cwd": "${workspaceFolder}/QMS.Wasm",
+      "url": "http://localhost:5123"
+    },
+    {
+      "name": "QMS.Api (C# Dev Kit)",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/QMS.Api/QMS.Api.csproj",
+      "launchProfile": "https"
+    },
+    {
+      "name": "QMS.Wasm (C# Dev Kit)",
+      "type": "dotnet",
+      "request": "launch",
+      "projectPath": "${workspaceFolder}/QMS.Wasm/QMS.Wasm.csproj",
+      "launchProfile": "http"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Start Both (API + WASM)",
+      "configurations": [
+        "QMS.Api (.NET Core Launch)",
+        "QMS.Wasm (Blazor WebAssembly)"
+      ],
+      "stopAll": true
+    },
+    {
+      "name": "Start Both (C# Dev Kit)",
+      "configurations": [
+        "QMS.Api (C# Dev Kit)",
+        "QMS.Wasm (C# Dev Kit)"
+      ],
+      "stopAll": true
+    }
+  ]
+}
